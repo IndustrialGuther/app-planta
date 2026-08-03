@@ -5,18 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Planta</title>
   <style>
-    :root { --primary: #0284c7; --bg: #f8fafc; --card: #ffffff; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
+    :root { --primary: #0284c7; --admin: #0f172a; --bg: #f8fafc; --card: #ffffff; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
     .container { max-width: 500px; margin: 0 auto; }
     .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
     h2 { margin-top: 0; color: var(--primary); font-size: 1.2rem; }
-    label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.9rem; }
-    select, input, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-    button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; margin-top: 15px; cursor: pointer; }
+    label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.9rem; }
+    select, input, textarea { width: 100%; padding: 12px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+    button { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; font-size: 1rem; font-weight: bold; border-radius: 6px; margin-top: 18px; cursor: pointer; }
     button:active { opacity: 0.9; }
-    .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-    .tab-btn { background: #e2e8f0; color: #475569; padding: 10px; border-radius: 6px; flex: 1; border: none; font-weight: bold; }
+    .btn-admin { background: var(--admin); }
+    .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+    .tab-btn { background: #e2e8f0; color: #475569; padding: 10px 5px; border-radius: 6px; flex: 1; border: none; font-weight: bold; font-size: 0.85rem; }
     .tab-btn.active { background: var(--primary); color: white; }
+    .tab-btn.admin-active { background: var(--admin); color: white; }
     .hidden { display: none; }
   </style>
 </head>
@@ -24,97 +26,101 @@
 
 <div class="container">
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('op')">Operadores</button>
-    <button class="tab-btn" onclick="switchTab('sol')">Solubles</button>
+    <button type="button" class="tab-btn active" onclick="switchTab('op')">Operadores</button>
+    <button type="button" class="tab-btn" onclick="switchTab('sol')">Solubles</button>
+    <button type="button" class="tab-btn" onclick="switchTab('admin')">⚙️ Admin</button>
   </div>
 
-  <!-- FORMULARIO OPERADORES -->
+  <!-- REGISTRO OPERADORES -->
   <form id="formOperadores" class="card" onsubmit="enviarDatos(event, 'OPERADOR')">
     <h2>Registro de Operadores</h2>
-    
     <label>Máquina</label>
-    <select id="opMaquina" required></select>
-
+    <select id="opMaquina" required><option value="">Cargando máquinas...</option></select>
     <label>Fecha</label>
     <input type="date" id="opFecha" required>
-
     <label>Operador Titular</label>
-    <select id="opTitular" required><option value="">Cargando...</option></select>
-
+    <select id="opTitular" required><option value="">Cargando operadores...</option></select>
     <label>Operador que Cubre</label>
-    <select id="opCubre"><option value="">Ninguno</option></select>
-
+    <select id="opCubre"><option value="Ninguno">Ninguno</option></select>
     <label>Comentarios</label>
-    <textarea id="opComentarios" rows="3"></textarea>
-
+    <textarea id="opComentarios" rows="3" placeholder="Opcional..."></textarea>
     <button type="submit">Guardar Información</button>
   </form>
 
-  <!-- FORMULARIO SOLUBLES -->
+  <!-- REGISTRO SOLUBLES -->
   <form id="formSolubles" class="card hidden" onsubmit="enviarDatos(event, 'SOLUBLE')">
     <h2>Registro de Soluble</h2>
-    
     <label>Máquina</label>
-    <select id="solMaquina" required></select>
-
+    <select id="solMaquina" required><option value="">Cargando máquinas...</option></select>
     <label>Fecha</label>
     <input type="date" id="solFecha" required>
-
     <label>% Brix Anterior</label>
     <input type="number" step="0.1" id="solBrixAnt" required>
-
     <label>% Brix Nuevo</label>
     <input type="number" step="0.1" id="solBrixNue" required>
-
     <label>pH Anterior</label>
     <input type="number" step="0.1" id="solPhAnt" required>
-
     <label>pH Nuevo</label>
     <input type="number" step="0.1" id="solPhNue" required>
-
     <label>Marca de Soluble</label>
     <input type="text" id="solMarca" required>
-
     <button type="submit">Capturar Soluble</button>
   </form>
+
+  <!-- PANEL DE ADMINISTRADOR -->
+  <div id="panelAdmin" class="card hidden">
+    <h2 style="color: var(--admin)">Panel de Administración</h2>
+    <p style="font-size: 0.85rem; color: #64748b;">Agrega nuevos elementos a los menús desplegables.</p>
+    
+    <label>Agregar Nuevo Operador</label>
+    <input type="text" id="nuevoOperador" placeholder="Ej: Juan Pérez">
+    <button type="button" class="btn-admin" onclick="agregarCatalogo('OPERADOR')">Guardar Operador</button>
+
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+    <label>Agregar Nueva Máquina</label>
+    <input type="text" id="nuevaMaquina" placeholder="Ej: CM1">
+    <button type="button" class="btn-admin" onclick="agregarCatalogo('MAQUINA')">Guardar Máquina</button>
+  </div>
 </div>
 
 <script>
-  // PEGA AQUÍ LA URL QUE TE DIO GOOGLE APPS SCRIPT
-  const API_URL = https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec;
+  // Tu URL real de Google Apps Script
+  const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
 
-  // Llenar máquinas de CM1 a CM25
-  function cargarMaquinas() {
-    let selects = [document.getElementById('opMaquina'), document.getElementById('solMaquina')];
-    selects.forEach(s => {
-      s.innerHTML = '';
-      for(let i=1; i<=25; i++) {
-        let opt = document.createElement('option');
-        opt.value = `CM${i}`;
-        opt.textContent = `CM${i}`;
-        s.appendChild(opt);
-      }
-    });
-  }
-
-  // Obtener lista de operadores desde Google Sheets
-  async function cargarOperadores() {
+  async function cargarCatalogos() {
     try {
       let res = await fetch(API_URL);
-      let ops = await res.json();
-      let selects = [document.getElementById('opTitular'), document.getElementById('opCubre')];
+      let data = await res.json();
       
-      selects.forEach((s, idx) => {
-        s.innerHTML = idx === 1 ? '<option value="">Ninguno</option>' : '<option value="">Seleccione...</option>';
-        ops.forEach(op => {
-          let option = document.createElement('option');
-          option.value = op;
-          option.textContent = op;
-          s.appendChild(option);
-        });
+      // Llenar Máquinas
+      let selectsMaq = [document.getElementById('opMaquina'), document.getElementById('solMaquina')];
+      selectsMaq.forEach(s => {
+        s.innerHTML = data.maquinas && data.maquinas.length > 0 
+          ? '<option value="">Seleccione máquina...</option>' 
+          : '<option value="">Sin máquinas (Agrégalas en Admin)</option>';
+        if (data.maquinas) {
+          data.maquinas.forEach(m => { s.innerHTML += `<option value="${m}">${m}</option>`; });
+        }
       });
+
+      // Llenar Operadores
+      let selTitular = document.getElementById('opTitular');
+      let selCubre = document.getElementById('opCubre');
+      selTitular.innerHTML = data.operadores && data.operadores.length > 0 
+        ? '<option value="">Seleccione operador...</option>' 
+        : '<option value="">Sin operadores (Agrégalos en Admin)</option>';
+      selCubre.innerHTML = '<option value="Ninguno">Ninguno</option>';
+
+      if (data.operadores) {
+        data.operadores.forEach(op => {
+          selTitular.innerHTML += `<option value="${op}">${op}</option>`;
+          selCubre.innerHTML += `<option value="${op}">${op}</option>`;
+        });
+      }
+
     } catch(e) {
-      alert("Error al cargar la lista de operadores");
+      console.error("Error cargando catálogos:", e);
     }
   }
 
@@ -124,24 +130,54 @@
   }
 
   function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'admin-active'));
+    document.getElementById('formOperadores').classList.add('hidden');
+    document.getElementById('formSolubles').classList.add('hidden');
+    document.getElementById('panelAdmin').classList.add('hidden');
+
     if(tab === 'op') {
       document.querySelectorAll('.tab-btn')[0].classList.add('active');
       document.getElementById('formOperadores').classList.remove('hidden');
-      document.getElementById('formSolubles').classList.add('hidden');
-    } else {
+    } else if(tab === 'sol') {
       document.querySelectorAll('.tab-btn')[1].classList.add('active');
       document.getElementById('formSolubles').classList.remove('hidden');
-      document.getElementById('formOperadores').classList.add('hidden');
+    } else if(tab === 'admin') {
+      let clave = prompt("Ingrese la contraseña de Administrador:");
+      if(clave === "1234") { // Contraseña por defecto
+        document.querySelectorAll('.tab-btn')[2].classList.add('admin-active');
+        document.getElementById('panelAdmin').classList.remove('hidden');
+      } else if (clave !== null) {
+        alert("Contraseña incorrecta");
+        switchTab('op');
+      }
+    }
+  }
+
+  async function agregarCatalogo(categoria) {
+    let input = categoria === 'OPERADOR' ? document.getElementById('nuevoOperador') : document.getElementById('nuevaMaquina');
+    let valor = input.value.trim();
+
+    if(!valor) return alert("Escribe un valor válido");
+
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'ADD_CATALOGO', categoria: categoria, valor: valor })
+      });
+      alert(`¡${categoria} guardado correctamente!`);
+      input.value = '';
+      setTimeout(cargarCatalogos, 1500); // Recargar listas tras guardar
+    } catch(e) {
+      alert("Error al guardar en el catálogo");
     }
   }
 
   async function enviarDatos(e, tipo) {
     e.preventDefault();
     let ahora = new Date();
-    let horaStr = ahora.toLocaleTimeString();
-
-    let payload = { tipo: tipo, hora: horaStr, turno: obtenerTurno() };
+    let payload = { tipo: tipo, hora: ahora.toLocaleTimeString(), turno: obtenerTurno() };
 
     if(tipo === 'OPERADOR') {
       payload.maquina = document.getElementById('opMaquina').value;
@@ -162,9 +198,11 @@
     try {
       await fetch(API_URL, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      alert("¡Registro guardado con éxito!");
+      alert("¡Registro enviado con éxito!");
       e.target.reset();
       document.querySelectorAll('input[type="date"]').forEach(i => i.valueAsDate = new Date());
     } catch(err) {
@@ -172,11 +210,10 @@
     }
   }
 
-  window.onload = () => {
-    cargarMaquinas();
-    cargarOperadores();
+  document.addEventListener("DOMContentLoaded", () => {
+    cargarCatalogos();
     document.querySelectorAll('input[type="date"]').forEach(i => i.valueAsDate = new Date());
-  };
+  });
 </script>
 
 </body>
