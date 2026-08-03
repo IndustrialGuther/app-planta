@@ -262,7 +262,7 @@
     let id = document.getElementById('editOpId').value;
     let payload = {
       action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP",
-      id: id || new Date().getTime(),
+      id: id || ("ID_" + new Date().getTime()),
       fecha: document.getElementById('opFecha').value,
       hora: new Date().toLocaleTimeString(),
       maquina: document.getElementById('opMaquina').value,
@@ -294,7 +294,7 @@
     let id = document.getElementById('editSolId').value;
     let payload = {
       action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL",
-      id: id || new Date().getTime(),
+      id: id || ("ID_" + new Date().getTime()),
       fecha: document.getElementById('solFecha').value,
       hora: new Date().toLocaleTimeString(),
       maquina: document.getElementById('solMaquina').value,
