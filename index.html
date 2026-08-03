@@ -3,215 +3,410 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Planta</title>
+  <title>Control de Planta Pro</title>
   <style>
     :root { --primary: #0284c7; --admin: #0f172a; --bg: #f8fafc; --card: #ffffff; }
     body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
-    .container { max-width: 500px; margin: 0 auto; }
+    .container { max-width: 600px; margin: 0 auto; }
     .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
-    h2 { margin-top: 0; color: var(--primary); font-size: 1.2rem; }
-    label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.9rem; }
-    select, input, textarea { width: 100%; padding: 12px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-    button { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; font-size: 1rem; font-weight: bold; border-radius: 6px; margin-top: 18px; cursor: pointer; }
-    button:active { opacity: 0.9; }
+    h2, h3 { margin-top: 0; color: var(--primary); }
+    label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; }
+    select, input, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; }
+    button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; margin-top: 15px; cursor: pointer; }
     .btn-admin { background: var(--admin); }
+    .btn-danger { background: #ef4444; margin-top: 5px; }
+    .btn-edit { background: #f59e0b; padding: 6px; font-size: 0.8rem; margin-top: 5px; }
     .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
     .tab-btn { background: #e2e8f0; color: #475569; padding: 10px 5px; border-radius: 6px; flex: 1; border: none; font-weight: bold; font-size: 0.85rem; }
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-btn.admin-active { background: var(--admin); color: white; }
     .hidden { display: none; }
+    .item-list { background: #f1f5f9; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; }
+    .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.85rem; font-weight: bold; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="tabs">
-    <button type="button" class="tab-btn active" onclick="switchTab('op')">Operadores</button>
-    <button type="button" class="tab-btn" onclick="switchTab('sol')">Solubles</button>
-    <button type="button" class="tab-btn" onclick="switchTab('admin')">⚙️ Admin</button>
+
+  <!-- PANTALLA LOGIN -->
+  <div id="secLogin" class="card">
+    <h2>Iniciar Sesión</h2>
+    <label>Usuario / Supervisor</label>
+    <input type="text" id="loginUser" placeholder="Ingresa tu usuario">
+    <label>Contraseña</label>
+    <input type="password" id="loginPass" placeholder="••••••••">
+    <button onclick="iniciarSesion()">Ingresar</button>
+    <button class="btn-admin" onclick="accesoAdminDirecto()">Acceso Administrador</button>
   </div>
 
-  <!-- REGISTRO OPERADORES -->
-  <form id="formOperadores" class="card" onsubmit="enviarDatos(event, 'OPERADOR')">
-    <h2>Registro de Operadores</h2>
-    <label>Máquina</label>
-    <select id="opMaquina" required><option value="">Cargando máquinas...</option></select>
-    <label>Fecha</label>
-    <input type="date" id="opFecha" required>
-    <label>Operador Titular</label>
-    <select id="opTitular" required><option value="">Cargando operadores...</option></select>
-    <label>Operador que Cubre</label>
-    <select id="opCubre"><option value="Ninguno">Ninguno</option></select>
-    <label>Comentarios</label>
-    <textarea id="opComentarios" rows="3" placeholder="Opcional..."></textarea>
-    <button type="submit">Guardar Información</button>
-  </form>
+  <!-- APLICACIÓN PRINCIPAL -->
+  <div id="secApp" class="hidden">
+    <div class="user-bar">
+      <span id="userDisp">Usuario: -</span>
+      <a href="#" onclick="cerrarSesion()" style="color:#ef4444;">Cerrar Sesión</a>
+    </div>
 
-  <!-- REGISTRO SOLUBLES -->
-  <form id="formSolubles" class="card hidden" onsubmit="enviarDatos(event, 'SOLUBLE')">
-    <h2>Registro de Soluble</h2>
-    <label>Máquina</label>
-    <select id="solMaquina" required><option value="">Cargando máquinas...</option></select>
-    <label>Fecha</label>
-    <input type="date" id="solFecha" required>
-    <label>% Brix Anterior</label>
-    <input type="number" step="0.1" id="solBrixAnt" required>
-    <label>% Brix Nuevo</label>
-    <input type="number" step="0.1" id="solBrixNue" required>
-    <label>pH Anterior</label>
-    <input type="number" step="0.1" id="solPhAnt" required>
-    <label>pH Nuevo</label>
-    <input type="number" step="0.1" id="solPhNue" required>
-    <label>Marca de Soluble</label>
-    <input type="text" id="solMarca" required>
-    <button type="submit">Capturar Soluble</button>
-  </form>
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('op')">Operadores</button>
+      <button type="button" class="tab-btn" onclick="switchTab('sol')">Solubles</button>
+      <button type="button" id="btnTabAdmin" class="tab-btn hidden" onclick="switchTab('admin')">⚙️ Admin</button>
+    </div>
 
-  <!-- PANEL DE ADMINISTRADOR -->
-  <div id="panelAdmin" class="card hidden">
-    <h2 style="color: var(--admin)">Panel de Administración</h2>
-    <p style="font-size: 0.85rem; color: #64748b;">Agrega nuevos elementos a los menús desplegables.</p>
-    
-    <label>Agregar Nuevo Operador</label>
-    <input type="text" id="nuevoOperador" placeholder="Ej: Juan Pérez">
-    <button type="button" class="btn-admin" onclick="agregarCatalogo('OPERADOR')">Guardar Operador</button>
+    <!-- REGISTRO OPERADORES -->
+    <div id="formOperadores" class="card">
+      <h2>Registro de Operadores</h2>
+      <form onsubmit="guardarOperador(event)">
+        <input type="hidden" id="editOpId">
+        <label>Máquina</label>
+        <input list="listMaquinas" id="opMaquina" required placeholder="Escribe o selecciona máquina...">
+        <label>Fecha</label>
+        <input type="date" id="opFecha" required>
+        <label>Turno</label>
+        <select id="opTurno" required></select>
+        <label>Operador Titular</label>
+        <input list="listOperadores" id="opTitular" required placeholder="Escribe para buscar operador...">
+        <label>Operador que Cubre</label>
+        <input list="listOperadores" id="opCubre" placeholder="Escribe para buscar o deja 'Ninguno'">
+        <label>Comentarios</label>
+        <textarea id="opComentarios" rows="2" placeholder="Opcional..."></textarea>
+        <button type="submit" id="btnSaveOp">Guardar Registro</button>
+      </form>
 
-    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+      <h3 style="margin-top: 25px; font-size: 1rem;">Registros del Turno Actual</h3>
+      <div id="historialOp">Cargando...</div>
+    </div>
 
-    <label>Agregar Nueva Máquina</label>
-    <input type="text" id="nuevaMaquina" placeholder="Ej: CM1">
-    <button type="button" class="btn-admin" onclick="agregarCatalogo('MAQUINA')">Guardar Máquina</button>
+    <!-- REGISTRO SOLUBLES -->
+    <div id="formSolubles" class="card hidden">
+      <h2>Registro de Soluble</h2>
+      <form onsubmit="guardarSoluble(event)">
+        <input type="hidden" id="editSolId">
+        <label>Máquina</label>
+        <input list="listMaquinas" id="solMaquina" required placeholder="Selecciona máquina...">
+        <label>Fecha</label>
+        <input type="date" id="solFecha" required>
+        <label>Turno</label>
+        <select id="solTurno" required></select>
+        <label>% Brix Anterior / Nuevo</label>
+        <div style="display:flex; gap:5px;">
+          <input type="number" step="0.1" id="solBrixAnt" placeholder="Ant" required>
+          <input type="number" step="0.1" id="solBrixNue" placeholder="Nuevo" required>
+        </div>
+        <label>pH Anterior / Nuevo</label>
+        <div style="display:flex; gap:5px;">
+          <input type="number" step="0.1" id="solPhAnt" placeholder="Ant" required>
+          <input type="number" step="0.1" id="solPhNue" placeholder="Nuevo" required>
+        </div>
+        <label>Marca de Soluble</label>
+        <select id="solMarca" required></select>
+        <button type="submit" id="btnSaveSol">Capturar Soluble</button>
+      </form>
+
+      <h3 style="margin-top: 25px; font-size: 1rem;">Solubles Capturados en Turno</h3>
+      <div id="historialSol">Cargando...</div>
+    </div>
+
+    <!-- PANEL DE ADMINISTRACIÓN -->
+    <div id="panelAdmin" class="card hidden">
+      <h2 style="color: var(--admin)">Gestión de Catálogos (Admin)</h2>
+      
+      <!-- ABM MÁQUINAS -->
+      <h3>Máquinas</h3>
+      <div style="display:flex; gap:5px;">
+        <input type="text" id="addMaq" placeholder="Ej: CM26">
+        <button class="btn-admin" onclick="addCat('Maquinas', 'addMaq')" style="margin:0; width:100px;">Agregar</button>
+      </div>
+      <div id="listAdminMaquinas" style="margin-top:10px;"></div>
+
+      <hr>
+      <!-- ABM OPERADORES -->
+      <h3>Operadores</h3>
+      <div style="display:flex; gap:5px;">
+        <input type="text" id="addOp" placeholder="Nombre completo">
+        <button class="btn-admin" onclick="addCat('Operadores', 'addOp')" style="margin:0; width:100px;">Agregar</button>
+      </div>
+      <div id="listAdminOperadores" style="margin-top:10px;"></div>
+
+      <hr>
+      <!-- ABM TURNOS -->
+      <h3>Turnos</h3>
+      <div style="display:flex; gap:5px;">
+        <input type="text" id="addTurno" placeholder="Ej: Turno Día (7AM-7PM)">
+        <button class="btn-admin" onclick="addCat('Turnos', 'addTurno')" style="margin:0; width:100px;">Agregar</button>
+      </div>
+      <div id="listAdminTurnos" style="margin-top:10px;"></div>
+
+      <hr>
+      <!-- ABM MARCAS -->
+      <h3>Marcas de Soluble</h3>
+      <div style="display:flex; gap:5px;">
+        <input type="text" id="addMarca" placeholder="Ej: Castrol">
+        <button class="btn-admin" onclick="addCat('Marcas', 'addMarca')" style="margin:0; width:100px;">Agregar</button>
+      </div>
+      <div id="listAdminMarcas" style="margin-top:10px;"></div>
+
+      <hr>
+      <!-- ABM USUARIOS -->
+      <h3>Usuarios / Supervisores</h3>
+      <input type="text" id="addUser" placeholder="Usuario">
+      <input type="text" id="addPass" placeholder="Contraseña" style="margin-top:5px;">
+      <button class="btn-admin" onclick="addUser()" style="margin-top:5px;">Crear Usuario</button>
+      <div id="listAdminUsuarios" style="margin-top:10px;"></div>
+    </div>
   </div>
+
 </div>
 
-<script>
-  // Tu URL real de Google Apps Script
-  const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
+<!-- DATALISTS PARA BUSCADORES -->
+<datalist id="listMaquinas"></datalist>
+<datalist id="listOperadores"></datalist>
 
-  async function cargarCatalogos() {
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
+  let dbData = {}, currentUser = null, isAdmin = false;
+
+  async function init() {
     try {
       let res = await fetch(API_URL);
-      let data = await res.json();
-      
-      // Llenar Máquinas
-      let selectsMaq = [document.getElementById('opMaquina'), document.getElementById('solMaquina')];
-      selectsMaq.forEach(s => {
-        s.innerHTML = data.maquinas && data.maquinas.length > 0 
-          ? '<option value="">Seleccione máquina...</option>' 
-          : '<option value="">Sin máquinas (Agrégalas en Admin)</option>';
-        if (data.maquinas) {
-          data.maquinas.forEach(m => { s.innerHTML += `<option value="${m}">${m}</option>`; });
-        }
-      });
-
-      // Llenar Operadores
-      let selTitular = document.getElementById('opTitular');
-      let selCubre = document.getElementById('opCubre');
-      selTitular.innerHTML = data.operadores && data.operadores.length > 0 
-        ? '<option value="">Seleccione operador...</option>' 
-        : '<option value="">Sin operadores (Agrégalos en Admin)</option>';
-      selCubre.innerHTML = '<option value="Ninguno">Ninguno</option>';
-
-      if (data.operadores) {
-        data.operadores.forEach(op => {
-          selTitular.innerHTML += `<option value="${op}">${op}</option>`;
-          selCubre.innerHTML += `<option value="${op}">${op}</option>`;
-        });
-      }
-
-    } catch(e) {
-      console.error("Error cargando catálogos:", e);
-    }
+      dbData = await res.json();
+      renderDataLists();
+    } catch(e) { console.error(e); }
   }
 
-  function obtenerTurno() {
-    let hora = new Date().getHours();
-    return (hora >= 7 && hora < 19) ? "Día (7AM-7PM)" : "Noche (7PM-7AM)";
+  function renderDataLists() {
+    let listM = document.getElementById('listMaquinas');
+    let listO = document.getElementById('listOperadores');
+    listM.innerHTML = ''; listO.innerHTML = '';
+    (dbData.maquinas || []).forEach(m => listM.innerHTML += `<option value="${m}">`);
+    (dbData.operadores || []).forEach(o => listO.innerHTML += `<option value="${o}">`);
+
+    // Llenar selectores fijados
+    fillSelect('opTurno', dbData.turnos);
+    fillSelect('solTurno', dbData.turnos);
+    fillSelect('solMarca', dbData.marcas);
+
+    if(isAdmin) renderAdminLists();
+    renderHistoriales();
   }
 
-  function switchTab(tab) {
+  function fillSelect(id, list) {
+    let s = document.getElementById(id);
+    s.innerHTML = '<option value="">Seleccione...</option>';
+    (list || []).forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`);
+  }
+
+  function iniciarSesion() {
+    let u = document.getElementById('loginUser').value.trim();
+    let p = document.getElementById('loginPass').value.trim();
+    let val = (dbData.usuarios || []).find(x => x.user === u && x.pass === p);
+
+    if(val) {
+      currentUser = u; isAdmin = false;
+      document.getElementById('userDisp').textContent = `Supervisor: ${u}`;
+      document.getElementById('secLogin').classList.add('hidden');
+      document.getElementById('secApp').classList.remove('hidden');
+      document.getElementById('btnTabAdmin').classList.add('hidden');
+      switchTab('op');
+    } else { alert("Usuario o contraseña incorrectos"); }
+  }
+
+  function accesoAdminDirecto() {
+    let p = prompt("Contraseña de Administrador:");
+    if(p === "1234") {
+      currentUser = "Admin"; isAdmin = true;
+      document.getElementById('userDisp').textContent = `Rol: Administrador`;
+      document.getElementById('secLogin').classList.add('hidden');
+      document.getElementById('secApp').classList.remove('hidden');
+      document.getElementById('btnTabAdmin').classList.remove('hidden');
+      switchTab('admin');
+    } else if(p) alert("Clave inválida");
+  }
+
+  function cerrarSesion() { location.reload(); }
+
+  function switchTab(t) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'admin-active'));
     document.getElementById('formOperadores').classList.add('hidden');
     document.getElementById('formSolubles').classList.add('hidden');
     document.getElementById('panelAdmin').classList.add('hidden');
 
-    if(tab === 'op') {
+    if(t === 'op') {
       document.querySelectorAll('.tab-btn')[0].classList.add('active');
       document.getElementById('formOperadores').classList.remove('hidden');
-    } else if(tab === 'sol') {
+    } else if(t === 'sol') {
       document.querySelectorAll('.tab-btn')[1].classList.add('active');
       document.getElementById('formSolubles').classList.remove('hidden');
-    } else if(tab === 'admin') {
-      let clave = prompt("Ingrese la contraseña de Administrador:");
-      if(clave === "1234") { // Contraseña por defecto
-        document.querySelectorAll('.tab-btn')[2].classList.add('admin-active');
-        document.getElementById('panelAdmin').classList.remove('hidden');
-      } else if (clave !== null) {
-        alert("Contraseña incorrecta");
-        switchTab('op');
-      }
+    } else if(t === 'admin') {
+      document.querySelectorAll('.tab-btn')[2].classList.add('admin-active');
+      document.getElementById('panelAdmin').classList.remove('hidden');
+      renderAdminLists();
     }
   }
 
-  async function agregarCatalogo(categoria) {
-    let input = categoria === 'OPERADOR' ? document.getElementById('nuevoOperador') : document.getElementById('nuevaMaquina');
-    let valor = input.value.trim();
-
-    if(!valor) return alert("Escribe un valor válido");
-
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'ADD_CATALOGO', categoria: categoria, valor: valor })
-      });
-      alert(`¡${categoria} guardado correctamente!`);
-      input.value = '';
-      setTimeout(cargarCatalogos, 1500); // Recargar listas tras guardar
-    } catch(e) {
-      alert("Error al guardar en el catálogo");
-    }
-  }
-
-  async function enviarDatos(e, tipo) {
+  async function guardarOperador(e) {
     e.preventDefault();
-    let ahora = new Date();
-    let payload = { tipo: tipo, hora: ahora.toLocaleTimeString(), turno: obtenerTurno() };
+    let id = document.getElementById('editOpId').value;
+    let payload = {
+      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP",
+      id: id,
+      fecha: document.getElementById('opFecha').value,
+      hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('opMaquina').value,
+      operador: document.getElementById('opTitular').value,
+      cubre: document.getElementById('opCubre').value || "Ninguno",
+      comentarios: document.getElementById('opComentarios').value,
+      turno: document.getElementById('opTurno').value,
+      usuario: currentUser
+    };
 
-    if(tipo === 'OPERADOR') {
-      payload.maquina = document.getElementById('opMaquina').value;
-      payload.fecha = document.getElementById('opFecha').value;
-      payload.operador = document.getElementById('opTitular').value;
-      payload.cubre = document.getElementById('opCubre').value;
-      payload.comentarios = document.getElementById('opComentarios').value;
-    } else {
-      payload.maquina = document.getElementById('solMaquina').value;
-      payload.fecha = document.getElementById('solFecha').value;
-      payload.brixAnterior = document.getElementById('solBrixAnt').value;
-      payload.brixNuevo = document.getElementById('solBrixNue').value;
-      payload.phAnterior = document.getElementById('solPhAnt').value;
-      payload.phNuevo = document.getElementById('solPhNue').value;
-      payload.marca = document.getElementById('solMarca').value;
-    }
+    await postData(payload);
+    alert("¡Guardado correctamente!");
+    e.target.reset();
+    document.getElementById('editOpId').value = '';
+    init();
+  }
 
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      alert("¡Registro enviado con éxito!");
-      e.target.reset();
-      document.querySelectorAll('input[type="date"]').forEach(i => i.valueAsDate = new Date());
-    } catch(err) {
-      alert("Error al enviar el registro");
+  async function guardarSoluble(e) {
+    e.preventDefault();
+    let id = document.getElementById('editSolId').value;
+    let payload = {
+      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL",
+      id: id,
+      fecha: document.getElementById('solFecha').value,
+      hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('solMaquina').value,
+      brixAnt: document.getElementById('solBrixAnt').value,
+      brixNue: document.getElementById('solBrixNue').value,
+      phAnt: document.getElementById('solPhAnt').value,
+      phNue: document.getElementById('solPhNue').value,
+      marca: document.getElementById('solMarca').value,
+      turno: document.getElementById('solTurno').value,
+      usuario: currentUser
+    };
+
+    await postData(payload);
+    alert("¡Soluble capturado!");
+    e.target.reset();
+    document.getElementById('editSolId').value = '';
+    init();
+  }
+
+  function renderHistoriales() {
+    let divOp = document.getElementById('historialOp');
+    let divSol = document.getElementById('historialSol');
+    divOp.innerHTML = ''; divSol.innerHTML = '';
+
+    (dbData.registrosOperadores || []).forEach(r => {
+      divOp.innerHTML += `
+        <div class="item-list">
+          <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5})<br>
+          <small>Fecha: ${r.fecha} | Hora: ${r.hora} | Turno: ${r.col7}</small>
+          <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
+        </div>`;
+    });
+
+    (dbData.registrosSolubles || []).forEach(r => {
+      divSol.innerHTML += `
+        <div class="item-list">
+          <b>${r.maquina}</b> - Brix: ${r.col4}->${r.col5} | pH: ${r.col6}->${r.col7}<br>
+          <small>Marca: ${r.col8} | Turno: ${r.col9}</small>
+          <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
+        </div>`;
+    });
+  }
+
+  function cargarEdicionOp(id) {
+    let r = dbData.registrosOperadores.find(x => x.id == id);
+    if(!r) return;
+    document.getElementById('editOpId').value = r.id;
+    document.getElementById('opMaquina').value = r.maquina;
+    document.getElementById('opFecha').value = r.fecha;
+    document.getElementById('opTurno').value = r.col7;
+    document.getElementById('opTitular').value = r.col4;
+    document.getElementById('opCubre').value = r.col5;
+    document.getElementById('opComentarios').value = r.col6;
+    document.getElementById('btnSaveOp').textContent = "Actualizar Registro";
+  }
+
+  function cargarEdicionSol(id) {
+    let r = dbData.registrosSolubles.find(x => x.id == id);
+    if(!r) return;
+    document.getElementById('editSolId').value = r.id;
+    document.getElementById('solMaquina').value = r.maquina;
+    document.getElementById('solFecha').value = r.fecha;
+    document.getElementById('solTurno').value = r.col9;
+    document.getElementById('solBrixAnt').value = r.col4;
+    document.getElementById('solBrixNue').value = r.col5;
+    document.getElementById('solPhAnt').value = r.col6;
+    document.getElementById('solPhNue').value = r.col7;
+    document.getElementById('solMarca').value = r.col8;
+    document.getElementById('btnSaveSol').textContent = "Actualizar Soluble";
+  }
+
+  /* ABM ADMIN */
+  function renderAdminLists() {
+    renderSubList('listAdminMaquinas', dbData.maquinas, 'Maquinas');
+    renderSubList('listAdminOperadores', dbData.operadores, 'Operadores');
+    renderSubList('listAdminTurnos', dbData.turnos, 'Turnos');
+    renderSubList('listAdminMarcas', dbData.marcas, 'Marcas');
+    
+    let uDiv = document.getElementById('listAdminUsuarios');
+    uDiv.innerHTML = '';
+    (dbData.usuarios || []).forEach(u => {
+      uDiv.innerHTML += `<div class="item-list">${u.user} <button class="btn-danger" style="padding:2px; float:right;" onclick="delCat('Usuarios', '${u.user}')">X</button></div>`;
+    });
+  }
+
+  function renderSubList(elemId, arr, cat) {
+    let d = document.getElementById(elemId);
+    d.innerHTML = '';
+    (arr || []).forEach(i => {
+      d.innerHTML += `<div class="item-list">${i} 
+        <button class="btn-danger" style="padding:2px; float:right;" onclick="delCat('${cat}', '${i}')">X</button>
+        <button class="btn-edit" style="padding:2px; float:right; margin-right:5px;" onclick="editCat('${cat}', '${i}')">✏️</button>
+      </div>`;
+    });
+  }
+
+  async function addCat(cat, inputId) {
+    let v = document.getElementById(inputId).value.trim();
+    if(!v) return;
+    await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v });
+    document.getElementById(inputId).value = '';
+    init();
+  }
+
+  async function delCat(cat, val) {
+    if(confirm(`¿Eliminar ${val}?`)) {
+      await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+      init();
     }
+  }
+
+  async function editCat(cat, val) {
+    let n = prompt("Nuevo nombre:", val);
+    if(n && n !== val) {
+      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: val, newVal1: n });
+      init();
+    }
+  }
+
+  async function addUser() {
+    let u = document.getElementById('addUser').value.trim();
+    let p = document.getElementById('addPass').value.trim();
+    if(!u || !p) return;
+    await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Usuarios", val1: u, val2: p });
+    document.getElementById('addUser').value = ''; document.getElementById('addPass').value = '';
+    init();
+  }
+
+  async function postData(data) {
+    await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    cargarCatalogos();
+    init();
     document.querySelectorAll('input[type="date"]').forEach(i => i.valueAsDate = new Date());
   });
 </script>
