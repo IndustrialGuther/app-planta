@@ -12,16 +12,23 @@
     h2, h3 { margin-top: 0; color: var(--primary); }
     label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; }
     select, input, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; }
-    button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; margin-top: 15px; cursor: pointer; }
+    
+    button { background: var(--primary); color: white; border: none; padding: 10px 14px; font-size: 0.9rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+    button:active { opacity: 0.85; }
+    .btn-full { width: 100%; margin-top: 15px; padding: 12px; }
     .btn-admin { background: var(--admin); }
-    .btn-danger { background: #ef4444; margin-top: 5px; }
-    .btn-edit { background: #f59e0b; padding: 6px; font-size: 0.8rem; margin-top: 5px; }
+    .btn-danger { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    .btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    
     .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
     .tab-btn { background: #e2e8f0; color: #475569; padding: 10px 5px; border-radius: 6px; flex: 1; border: none; font-weight: bold; font-size: 0.85rem; }
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-btn.admin-active { background: var(--admin); color: white; }
     .hidden { display: none; }
-    .item-list { background: #f1f5f9; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; }
+
+    /* ESTILOS LIMPIOS PARA LISTAS Y BOTONES EN FILA */
+    .item-row { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-top: 6px; font-size: 0.9rem; }
+    .item-actions { display: flex; gap: 6px; }
     .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.85rem; font-weight: bold; }
   </style>
 </head>
@@ -29,18 +36,18 @@
 
 <div class="container">
 
-  <!-- PANTALLA LOGIN -->
+  <!-- LOGIN -->
   <div id="secLogin" class="card">
     <h2>Iniciar Sesión</h2>
     <label>Usuario / Supervisor</label>
     <input type="text" id="loginUser" placeholder="Ingresa tu usuario">
     <label>Contraseña</label>
     <input type="password" id="loginPass" placeholder="••••••••">
-    <button onclick="iniciarSesion()">Ingresar</button>
-    <button class="btn-admin" onclick="accesoAdminDirecto()">Acceso Administrador</button>
+    <button class="btn-full" onclick="iniciarSesion()">Ingresar</button>
+    <button class="btn-full btn-admin" onclick="accesoAdminDirecto()">Acceso Administrador</button>
   </div>
 
-  <!-- APLICACIÓN PRINCIPAL -->
+  <!-- APP PRINCIPAL -->
   <div id="secApp" class="hidden">
     <div class="user-bar">
       <span id="userDisp">Usuario: -</span>
@@ -70,10 +77,10 @@
         <input list="listOperadores" id="opCubre" placeholder="Escribe para buscar o deja 'Ninguno'">
         <label>Comentarios</label>
         <textarea id="opComentarios" rows="2" placeholder="Opcional..."></textarea>
-        <button type="submit" id="btnSaveOp">Guardar Registro</button>
+        <button type="submit" id="btnSaveOp" class="btn-full">Guardar Registro</button>
       </form>
 
-      <h3 style="margin-top: 25px; font-size: 1rem;">Registros del Turno Actual</h3>
+      <h3 style="margin-top: 25px; font-size: 1rem;">Registros de Operadores</h3>
       <div id="historialOp">Cargando...</div>
     </div>
 
@@ -100,65 +107,63 @@
         </div>
         <label>Marca de Soluble</label>
         <select id="solMarca" required></select>
-        <button type="submit" id="btnSaveSol">Capturar Soluble</button>
+        <button type="submit" id="btnSaveSol" class="btn-full">Capturar Soluble</button>
       </form>
 
-      <h3 style="margin-top: 25px; font-size: 1rem;">Solubles Capturados en Turno</h3>
+      <h3 style="margin-top: 25px; font-size: 1rem;">Registros de Solubles</h3>
       <div id="historialSol">Cargando...</div>
     </div>
 
-    <!-- PANEL DE ADMINISTRACIÓN -->
+    <!-- ADMIN PANEL -->
     <div id="panelAdmin" class="card hidden">
       <h2 style="color: var(--admin)">Gestión de Catálogos (Admin)</h2>
       
-      <!-- ABM MÁQUINAS -->
       <h3>Máquinas</h3>
       <div style="display:flex; gap:5px;">
         <input type="text" id="addMaq" placeholder="Ej: CM26">
-        <button class="btn-admin" onclick="addCat('Maquinas', 'addMaq')" style="margin:0; width:100px;">Agregar</button>
+        <button class="btn-admin" onclick="addCat('Maquinas', 'addMaq')" style="width:120px;">Agregar</button>
       </div>
-      <div id="listAdminMaquinas" style="margin-top:10px;"></div>
+      <div id="listAdminMaquinas"></div>
 
-      <hr>
-      <!-- ABM OPERADORES -->
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
       <h3>Operadores</h3>
       <div style="display:flex; gap:5px;">
         <input type="text" id="addOp" placeholder="Nombre completo">
-        <button class="btn-admin" onclick="addCat('Operadores', 'addOp')" style="margin:0; width:100px;">Agregar</button>
+        <button class="btn-admin" onclick="addCat('Operadores', 'addOp')" style="width:120px;">Agregar</button>
       </div>
-      <div id="listAdminOperadores" style="margin-top:10px;"></div>
+      <div id="listAdminOperadores"></div>
 
-      <hr>
-      <!-- ABM TURNOS -->
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
       <h3>Turnos</h3>
       <div style="display:flex; gap:5px;">
-        <input type="text" id="addTurno" placeholder="Ej: Turno Día (7AM-7PM)">
-        <button class="btn-admin" onclick="addCat('Turnos', 'addTurno')" style="margin:0; width:100px;">Agregar</button>
+        <input type="text" id="addTurno" placeholder="Ej: Día (7AM-7PM)">
+        <button class="btn-admin" onclick="addCat('Turnos', 'addTurno')" style="width:120px;">Agregar</button>
       </div>
-      <div id="listAdminTurnos" style="margin-top:10px;"></div>
+      <div id="listAdminTurnos"></div>
 
-      <hr>
-      <!-- ABM MARCAS -->
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
       <h3>Marcas de Soluble</h3>
       <div style="display:flex; gap:5px;">
         <input type="text" id="addMarca" placeholder="Ej: Castrol">
-        <button class="btn-admin" onclick="addCat('Marcas', 'addMarca')" style="margin:0; width:100px;">Agregar</button>
+        <button class="btn-admin" onclick="addCat('Marcas', 'addMarca')" style="width:120px;">Agregar</button>
       </div>
-      <div id="listAdminMarcas" style="margin-top:10px;"></div>
+      <div id="listAdminMarcas"></div>
 
-      <hr>
-      <!-- ABM USUARIOS -->
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
       <h3>Usuarios / Supervisores</h3>
       <input type="text" id="addUser" placeholder="Usuario">
       <input type="text" id="addPass" placeholder="Contraseña" style="margin-top:5px;">
-      <button class="btn-admin" onclick="addUser()" style="margin-top:5px;">Crear Usuario</button>
-      <div id="listAdminUsuarios" style="margin-top:10px;"></div>
+      <button class="btn-admin btn-full" onclick="addUser()">Crear Usuario</button>
+      <div id="listAdminUsuarios"></div>
     </div>
   </div>
 
 </div>
 
-<!-- DATALISTS PARA BUSCADORES -->
 <datalist id="listMaquinas"></datalist>
 <datalist id="listOperadores"></datalist>
 
@@ -181,7 +186,6 @@
     (dbData.maquinas || []).forEach(m => listM.innerHTML += `<option value="${m}">`);
     (dbData.operadores || []).forEach(o => listO.innerHTML += `<option value="${o}">`);
 
-    // Llenar selectores fijados
     fillSelect('opTurno', dbData.turnos);
     fillSelect('solTurno', dbData.turnos);
     fillSelect('solMarca', dbData.marcas);
@@ -261,10 +265,11 @@
     };
 
     await postData(payload);
-    alert("¡Guardado correctamente!");
+    alert("¡Registro guardado!");
     e.target.reset();
     document.getElementById('editOpId').value = '';
-    init();
+    document.getElementById('btnSaveOp').textContent = "Guardar Registro";
+    await init();
   }
 
   async function guardarSoluble(e) {
@@ -286,10 +291,11 @@
     };
 
     await postData(payload);
-    alert("¡Soluble capturado!");
+    alert("¡Soluble guardado!");
     e.target.reset();
     document.getElementById('editSolId').value = '';
-    init();
+    document.getElementById('btnSaveSol').textContent = "Capturar Soluble";
+    await init();
   }
 
   function renderHistoriales() {
@@ -299,21 +305,39 @@
 
     (dbData.registrosOperadores || []).forEach(r => {
       divOp.innerHTML += `
-        <div class="item-list">
-          <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5})<br>
-          <small>Fecha: ${r.fecha} | Hora: ${r.hora} | Turno: ${r.col7}</small>
-          <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
+        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+          <div>
+            <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5})<br>
+            <small style="color:#64748b;">${r.fecha} | Turno: ${r.col7}</small>
+          </div>
+          <div class="item-actions" style="margin-top:5px;">
+            <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
+            <button class="btn-danger" onclick="eliminarRegistro('OPERADOR', '${r.id}')">🗑️ Borrar</button>
+          </div>
         </div>`;
     });
 
     (dbData.registrosSolubles || []).forEach(r => {
       divSol.innerHTML += `
-        <div class="item-list">
-          <b>${r.maquina}</b> - Brix: ${r.col4}->${r.col5} | pH: ${r.col6}->${r.col7}<br>
-          <small>Marca: ${r.col8} | Turno: ${r.col9}</small>
-          <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
+        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+          <div>
+            <b>${r.maquina}</b> - Brix: ${r.col4} ➔ ${r.col5} | pH: ${r.col6} ➔ ${r.col7}<br>
+            <small style="color:#64748b;">Marca: ${r.col8} | Turno: ${r.col9}</small>
+          </div>
+          <div class="item-actions" style="margin-top:5px;">
+            <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
+            <button class="btn-danger" onclick="eliminarRegistro('SOLUBLE', '${r.id}')">🗑️ Borrar</button>
+          </div>
         </div>`;
     });
+  }
+
+  async function eliminarRegistro(tipo, id) {
+    if(confirm("¿Estás seguro de borrar este registro?")) {
+      let action = tipo === 'OPERADOR' ? 'DELETE_REGISTRO_OP' : 'DELETE_REGISTRO_SOL';
+      await postData({ action: action, id: id });
+      await init();
+    }
   }
 
   function cargarEdicionOp(id) {
@@ -327,6 +351,7 @@
     document.getElementById('opCubre').value = r.col5;
     document.getElementById('opComentarios').value = r.col6;
     document.getElementById('btnSaveOp').textContent = "Actualizar Registro";
+    window.scrollTo({top: 0, behavior: 'smooth'});
   }
 
   function cargarEdicionSol(id) {
@@ -342,9 +367,10 @@
     document.getElementById('solPhNue').value = r.col7;
     document.getElementById('solMarca').value = r.col8;
     document.getElementById('btnSaveSol').textContent = "Actualizar Soluble";
+    window.scrollTo({top: 0, behavior: 'smooth'});
   }
 
-  /* ABM ADMIN */
+  /* RENDER ADMIN EN FILAS LINDAS */
   function renderAdminLists() {
     renderSubList('listAdminMaquinas', dbData.maquinas, 'Maquinas');
     renderSubList('listAdminOperadores', dbData.operadores, 'Operadores');
@@ -354,7 +380,13 @@
     let uDiv = document.getElementById('listAdminUsuarios');
     uDiv.innerHTML = '';
     (dbData.usuarios || []).forEach(u => {
-      uDiv.innerHTML += `<div class="item-list">${u.user} <button class="btn-danger" style="padding:2px; float:right;" onclick="delCat('Usuarios', '${u.user}')">X</button></div>`;
+      uDiv.innerHTML += `
+        <div class="item-row">
+          <span><b>${u.user}</b></span>
+          <div class="item-actions">
+            <button class="btn-danger" onclick="delCat('Usuarios', '${u.user}')">🗑️ Borrar</button>
+          </div>
+        </div>`;
     });
   }
 
@@ -362,10 +394,14 @@
     let d = document.getElementById(elemId);
     d.innerHTML = '';
     (arr || []).forEach(i => {
-      d.innerHTML += `<div class="item-list">${i} 
-        <button class="btn-danger" style="padding:2px; float:right;" onclick="delCat('${cat}', '${i}')">X</button>
-        <button class="btn-edit" style="padding:2px; float:right; margin-right:5px;" onclick="editCat('${cat}', '${i}')">✏️</button>
-      </div>`;
+      d.innerHTML += `
+        <div class="item-row">
+          <span>${i}</span>
+          <div class="item-actions">
+            <button class="btn-edit" onclick="editCat('${cat}', '${i}')">✏️</button>
+            <button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button>
+          </div>
+        </div>`;
     });
   }
 
@@ -374,21 +410,21 @@
     if(!v) return;
     await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v });
     document.getElementById(inputId).value = '';
-    init();
+    await init();
   }
 
   async function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
-      init();
+      await init();
     }
   }
 
   async function editCat(cat, val) {
-    let n = prompt("Nuevo nombre:", val);
-    if(n && n !== val) {
-      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: val, newVal1: n });
-      init();
+    let n = prompt("Nuevo nombre para:", val);
+    if(n && n.trim() !== "" && n !== val) {
+      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: val, newVal1: n.trim() });
+      await init();
     }
   }
 
@@ -398,7 +434,7 @@
     if(!u || !p) return;
     await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Usuarios", val1: u, val2: p });
     document.getElementById('addUser').value = ''; document.getElementById('addPass').value = '';
-    init();
+    await init();
   }
 
   async function postData(data) {
