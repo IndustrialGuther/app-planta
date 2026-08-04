@@ -13,6 +13,7 @@
 
   // Detecta el supervisor de un registro buscando en cualquier propiedad posible
   function getSupervisorFromRecord(r) {
+    if (!r) return "Desconocido";
     let u = r.usuario || r.user || r.supervisor || r.col10 || r.col9 || r.col8;
     if (!u || u === 'N/A' || u === 'undefined') return "Desconocido";
     return String(u).trim();
@@ -56,9 +57,14 @@
   function renderDataLists() {
     let listM = document.getElementById('listMaquinas');
     let listO = document.getElementById('listOperadores');
-    listM.innerHTML = ''; listO.innerHTML = '';
-    dbData.maquinas.forEach(m => listM.innerHTML += `<option value="${m}">`);
-    dbData.operadores.forEach(o => listO.innerHTML += `<option value="${o}">`);
+    if(listM) {
+      listM.innerHTML = '';
+      dbData.maquinas.forEach(m => listM.innerHTML += `<option value="${m}">`);
+    }
+    if(listO) {
+      listO.innerHTML = '';
+      dbData.operadores.forEach(o => listO.innerHTML += `<option value="${o}">`);
+    }
 
     fillSelect('opTurno', dbData.turnos);
     fillSelect('solTurno', dbData.turnos);
@@ -66,8 +72,10 @@
 
     // Llenar selector de usuarios para filtro Admin
     let selAdminU = document.getElementById('adminFilterUser');
-    selAdminU.innerHTML = '<option value="ALL">-- Todos los Supervisores --</option>';
-    dbData.usuarios.forEach(u => selAdminU.innerHTML += `<option value="${u.user}">${u.user}</option>`);
+    if(selAdminU) {
+      selAdminU.innerHTML = '<option value="ALL">-- Todos los Supervisores --</option>';
+      dbData.usuarios.forEach(u => selAdminU.innerHTML += `<option value="${u.user}">${u.user}</option>`);
+    }
 
     if(isAdmin) renderAdminLists();
     renderHistoriales();
@@ -75,6 +83,7 @@
 
   function fillSelect(id, list) {
     let s = document.getElementById(id);
+    if(!s) return;
     s.innerHTML = '<option value="">Seleccione...</option>';
     (list || []).forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`);
   }
@@ -206,13 +215,16 @@
     document.getElementById('solFecha').value = getTodayString();
   }
 
-  // RENDER HISTORIAL VISTA SUPERVISOR
   function renderHistoriales() {
-    let selOpFecha = document.getElementById('filterOpFecha').value;
-    let selSolFecha = document.getElementById('filterSolFecha').value;
+    let filterOpElem = document.getElementById('filterOpFecha');
+    let filterSolElem = document.getElementById('filterSolFecha');
+    let selOpFecha = filterOpElem ? filterOpElem.value : getTodayString();
+    let selSolFecha = filterSolElem ? filterSolElem.value : getTodayString();
 
     let divOp = document.getElementById('historialOp');
     let divSol = document.getElementById('historialSol');
+    if(!divOp || !divSol) return;
+
     divOp.innerHTML = ''; divSol.innerHTML = '';
 
     let opFiltrados = dbData.registrosOperadores.filter(r => {
@@ -230,7 +242,7 @@
     });
 
     if (opFiltrados.length === 0) {
-      divOp.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No tienes registros grabados para el ${selOpFecha}.</p>`;
+      divOp.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No tienes registros grabados para esta fecha.</p>`;
     } else {
       opFiltrados.forEach(r => {
         divOp.innerHTML += `
@@ -249,7 +261,7 @@
     }
 
     if (solFiltrados.length === 0) {
-      divSol.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No tienes registros grabados para el ${selSolFecha}.</p>`;
+      divSol.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No tienes registros grabados para esta fecha.</p>`;
     } else {
       solFiltrados.forEach(r => {
         divSol.innerHTML += `
@@ -268,13 +280,16 @@
     }
   }
 
-  // RENDER HISTORIAL VISTA ADMIN
   function renderAdminHistorial() {
-    let fecha = document.getElementById('adminFilterFecha').value;
-    let userSel = document.getElementById('adminFilterUser').value;
+    let fechaElem = document.getElementById('adminFilterFecha');
+    let userElem = document.getElementById('adminFilterUser');
+    let fecha = fechaElem ? fechaElem.value : getTodayString();
+    let userSel = userElem ? userElem.value : "ALL";
 
     let divOp = document.getElementById('adminHistOp');
     let divSol = document.getElementById('adminHistSol');
+    if(!divOp || !divSol) return;
+
     divOp.innerHTML = ''; divSol.innerHTML = '';
 
     let opFiltrados = dbData.registrosOperadores.filter(r => {
@@ -387,22 +402,25 @@
     renderSubList('listAdminMarcas', dbData.marcas, 'Marcas');
     
     let uDiv = document.getElementById('listAdminUsuarios');
-    uDiv.innerHTML = '';
-    dbData.usuarios.forEach(u => {
-      uDiv.innerHTML += `
-        <div class="item-row">
-          <span><b>${u.user}</b></span>
-          <div class="item-actions">
-            <button class="btn-danger" onclick="delCat('Usuarios', '${u.user}')">🗑️ Borrar</button>
-          </div>
-        </div>`;
-    });
+    if(uDiv) {
+      uDiv.innerHTML = '';
+      dbData.usuarios.forEach(u => {
+        uDiv.innerHTML += `
+          <div class="item-row">
+            <span><b>${u.user}</b></span>
+            <div class="item-actions">
+              <button class="btn-danger" onclick="delCat('Usuarios', '${u.user}')">🗑️ Borrar</button>
+            </div>
+          </div>`;
+      });
+    }
   }
 
   function renderSubList(elemId, arr, cat) {
     let d = document.getElementById(elemId);
+    if(!d) return;
     d.innerHTML = '';
-    arr.forEach(i => {
+    (arr || []).forEach(i => {
       d.innerHTML += `
         <div class="item-row">
           <span>${i}</span>
