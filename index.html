@@ -29,6 +29,7 @@
     .item-row { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-top: 6px; font-size: 0.9rem; }
     .item-actions { display: flex; gap: 6px; }
     .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.85rem; font-weight: bold; }
+    .shift-badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 10px; display: inline-block; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -79,7 +80,8 @@
         <button type="submit" id="btnSaveOp" class="btn-full">Guardar Registro</button>
       </form>
 
-      <h3 style="margin-top: 25px; font-size: 1rem;">Registros de Operadores</h3>
+      <h3 style="margin-top: 25px; font-size: 1rem;">Registros de Turno Actual</h3>
+      <div id="badgeShiftOp" class="shift-badge">Cargando jornada...</div>
       <div id="historialOp">Cargando...</div>
     </div>
 
@@ -109,7 +111,8 @@
         <button type="submit" id="btnSaveSol" class="btn-full">Capturar Soluble</button>
       </form>
 
-      <h3 style="margin-top: 25px; font-size: 1rem;">Registros de Solubles</h3>
+      <h3 style="margin-top: 25px; font-size: 1rem;">Registros de Turno Actual</h3>
+      <div id="badgeShiftSol" class="shift-badge">Cargando jornada...</div>
       <div id="historialSol">Cargando...</div>
     </div>
 
@@ -186,6 +189,64 @@
       };
       renderDataLists();
     } catch(e) { console.error("Error al cargar los datos:", e); }
+  }
+
+  // --- LÓGICA DE JORNADA / SHIFT (7AM - 7PM / 7PM - 7AM) ---
+  function getShiftInfo(d = new Date()) {
+    let year = d.getFullYear();
+    let month = String(d.getMonth() + 1).padStart(2, '0');
+    let day = String(d.getDate()).padStart(2, '0');
+    let dateStr = `${year}-${month}-${day}`;
+    let hours = d.getHours();
+
+    if (hours >= 7 && hours < 19) {
+      return {
+        type: "DÍA",
+        shiftKey: `${dateStr}_DIA`,
+        label: `Jornada Día (${dateStr} 07:00 AM - 07:00 PM)`
+      };
+    } else {
+      let baseDate = new Date(d);
+      if (hours < 7) {
+        baseDate.setDate(baseDate.getDate() - 1);
+      }
+      let bYear = baseDate.getFullYear();
+      let bMonth = String(baseDate.getMonth() + 1).padStart(2, '0');
+      let bDay = String(baseDate.getDate()).padStart(2, '0');
+      let bDateStr = `${bYear}-${bMonth}-${bDay}`;
+
+      return {
+        type: "NOCHE",
+        shiftKey: `${bDateStr}_NOCHE`,
+        label: `Jornada Noche (Inició ${bDateStr} 07:00 PM)`
+      };
+    }
+  }
+
+  function parseTimeString(fechaStr, horaStr) {
+    if (!fechaStr) return new Date();
+    let parts = fechaStr.split('-');
+    let dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+
+    if (horaStr) {
+      let match = horaStr.match(/(\d+):(\d+):?(\d+)?\s*(AM|PM)?/i);
+      if (match) {
+        let h = parseInt(match[1]);
+        let m = parseInt(match[2]);
+        let ampm = match[4];
+        if (ampm) {
+          if (ampm.toUpperCase() === 'PM' && h < 12) h += 12;
+          if (ampm.toUpperCase() === 'AM' && h === 12) h = 0;
+        }
+        dateObj.setHours(h, m, 0);
+      }
+    }
+    return dateObj;
+  }
+
+  function getRecordShiftKey(fechaStr, horaStr) {
+    let dateObj = parseTimeString(fechaStr, horaStr);
+    return getShiftInfo(dateObj).shiftKey;
   }
 
   function renderDataLists() {
@@ -277,7 +338,7 @@
       let idx = dbData.registrosOperadores.findIndex(x => x.id == id);
       if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno };
     } else {
-      dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno });
+      dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
     }
     
     renderHistoriales();
@@ -311,7 +372,7 @@
       let idx = dbData.registrosSolubles.findIndex(x => x.id == id);
       if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno };
     } else {
-      dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno });
+      dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, usuario: currentUser });
     }
 
     renderHistoriales();
@@ -328,33 +389,49 @@
     let divSol = document.getElementById('historialSol');
     divOp.innerHTML = ''; divSol.innerHTML = '';
 
-    dbData.registrosOperadores.forEach(r => {
-      divOp.innerHTML += `
-        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-          <div>
-            <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5})<br>
-            <small style="color:#64748b;">${r.fecha} | Turno: ${r.col7}</small>
-          </div>
-          <div class="item-actions" style="margin-top:5px;">
-            <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
-            <button class="btn-danger" onclick="eliminarRegistro('OPERADOR', '${r.id}')">🗑️ Borrar</button>
-          </div>
-        </div>`;
-    });
+    let currentShift = getShiftInfo();
+    document.getElementById('badgeShiftOp').textContent = `📅 ${currentShift.label}`;
+    document.getElementById('badgeShiftSol').textContent = `📅 ${currentShift.label}`;
 
-    dbData.registrosSolubles.forEach(r => {
-      divSol.innerHTML += `
-        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-          <div>
-            <b>${r.maquina}</b> - Brix: ${r.col4} ➔ ${r.col5} | pH: ${r.col6} ➔ ${r.col7}<br>
-            <small style="color:#64748b;">Marca: ${r.col8} | Turno: ${r.col9}</small>
-          </div>
-          <div class="item-actions" style="margin-top:5px;">
-            <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
-            <button class="btn-danger" onclick="eliminarRegistro('SOLUBLE', '${r.id}')">🗑️ Borrar</button>
-          </div>
-        </div>`;
-    });
+    // Filtrar solo registros pertenecientes a la jornada actual
+    let opFiltrados = dbData.registrosOperadores.filter(r => getRecordShiftKey(r.fecha, r.hora) === currentShift.shiftKey);
+    let solFiltrados = dbData.registrosSolubles.filter(r => getRecordShiftKey(r.fecha, r.hora) === currentShift.shiftKey);
+
+    if (opFiltrados.length === 0) {
+      divOp.innerHTML = '<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No hay registros en la jornada actual.</p>';
+    } else {
+      opFiltrados.forEach(r => {
+        divOp.innerHTML += `
+          <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+            <div>
+              <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5})<br>
+              <small style="color:#64748b;">${r.fecha} ${r.hora || ''} | Turno: ${r.col7}</small>
+            </div>
+            <div class="item-actions" style="margin-top:5px;">
+              <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
+              <button class="btn-danger" onclick="eliminarRegistro('OPERADOR', '${r.id}')">🗑️ Borrar</button>
+            </div>
+          </div>`;
+      });
+    }
+
+    if (solFiltrados.length === 0) {
+      divSol.innerHTML = '<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No hay registros en la jornada actual.</p>';
+    } else {
+      solFiltrados.forEach(r => {
+        divSol.innerHTML += `
+          <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+            <div>
+              <b>${r.maquina}</b> - Brix: ${r.col4} ➔ ${r.col5} | pH: ${r.col6} ➔ ${r.col7}<br>
+              <small style="color:#64748b;">Marca: ${r.col8} | Turno: ${r.col9} | ${r.hora || ''}</small>
+            </div>
+            <div class="item-actions" style="margin-top:5px;">
+              <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
+              <button class="btn-danger" onclick="eliminarRegistro('SOLUBLE', '${r.id}')">🗑️ Borrar</button>
+            </div>
+          </div>`;
+      });
+    }
   }
 
   function eliminarRegistro(tipo, id) {
