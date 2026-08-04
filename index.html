@@ -26,11 +26,10 @@
     .tab-btn.admin-active { background: var(--admin); color: white; }
     .hidden { display: none; }
 
-    .item-row { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 10px 12px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; }
+    .item-row { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-top: 6px; font-size: 0.9rem; }
     .item-actions { display: flex; gap: 6px; }
     .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.85rem; font-weight: bold; }
-    .shift-badge { background: #e0f2fe; color: #0369a1; padding: 6px 10px; border-radius: 4px; font-size: 0.78rem; margin-bottom: 10px; display: inline-block; font-weight: 600; }
-    .comments-box { background: #ffffff; border-left: 3px solid #0284c7; padding: 4px 8px; margin-top: 4px; font-style: italic; color: #334155; font-size: 0.82rem; }
+    .shift-badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 10px; display: inline-block; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -109,8 +108,6 @@
         </div>
         <label>Marca de Soluble</label>
         <select id="solMarca" required></select>
-        <label>Comentarios</label>
-        <textarea id="solComentarios" rows="2" placeholder="Observaciones u otros detalles..."></textarea>
         <button type="submit" id="btnSaveSol" class="btn-full">Capturar Soluble</button>
       </form>
 
@@ -339,7 +336,7 @@
 
     if(id) {
       let idx = dbData.registrosOperadores.findIndex(x => x.id == id);
-      if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, fecha: payload.fecha };
+      if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno };
     } else {
       dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
     }
@@ -368,15 +365,14 @@
       phNue: document.getElementById('solPhNue').value,
       marca: document.getElementById('solMarca').value,
       turno: document.getElementById('solTurno').value,
-      comentarios: document.getElementById('solComentarios').value,
       usuario: currentUser
     };
 
     if(id) {
       let idx = dbData.registrosSolubles.findIndex(x => x.id == id);
-      if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, fecha: payload.fecha };
+      if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno };
     } else {
-      dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: currentUser });
+      dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, usuario: currentUser });
     }
 
     renderHistoriales();
@@ -397,7 +393,7 @@
     document.getElementById('badgeShiftOp').textContent = `📅 ${currentShift.label}`;
     document.getElementById('badgeShiftSol').textContent = `📅 ${currentShift.label}`;
 
-    // Filtrar registros pertenecientes a la jornada actual
+    // Filtrar solo registros pertenecientes a la jornada actual
     let opFiltrados = dbData.registrosOperadores.filter(r => getRecordShiftKey(r.fecha, r.hora) === currentShift.shiftKey);
     let solFiltrados = dbData.registrosSolubles.filter(r => getRecordShiftKey(r.fecha, r.hora) === currentShift.shiftKey);
 
@@ -405,15 +401,13 @@
       divOp.innerHTML = '<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No hay registros en la jornada actual.</p>';
     } else {
       opFiltrados.forEach(r => {
-        let comentariosHtml = r.col6 ? `<div class="comments-box">💬 ${r.col6}</div>` : '';
         divOp.innerHTML += `
           <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-            <div style="width:100%;">
-              <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5 || 'Ninguno'})<br>
-              <small style="color:#64748b;">📅 Fecha: ${r.fecha || '-'} | Hora: ${r.hora || '-'} | Turno: ${r.col7 || '-'} | Reg: ${r.usuario || '-'}</small>
-              ${comentariosHtml}
+            <div>
+              <b>${r.maquina}</b> - Op: ${r.col4} (Cubre: ${r.col5})<br>
+              <small style="color:#64748b;">${r.fecha} ${r.hora || ''} | Turno: ${r.col7}</small>
             </div>
-            <div class="item-actions" style="margin-top:8px; align-self:flex-end;">
+            <div class="item-actions" style="margin-top:5px;">
               <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
               <button class="btn-danger" onclick="eliminarRegistro('OPERADOR', '${r.id}')">🗑️ Borrar</button>
             </div>
@@ -425,15 +419,13 @@
       divSol.innerHTML = '<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No hay registros en la jornada actual.</p>';
     } else {
       solFiltrados.forEach(r => {
-        let comentariosHtml = r.col10 ? `<div class="comments-box">💬 ${r.col10}</div>` : '';
         divSol.innerHTML += `
           <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-            <div style="width:100%;">
+            <div>
               <b>${r.maquina}</b> - Brix: ${r.col4} ➔ ${r.col5} | pH: ${r.col6} ➔ ${r.col7}<br>
-              <small style="color:#64748b;">📅 Fecha: ${r.fecha || '-'} | Hora: ${r.hora || '-'} | Marca: ${r.col8 || '-'} | Turno: ${r.col9 || '-'} | Reg: ${r.usuario || '-'}</small>
-              ${comentariosHtml}
+              <small style="color:#64748b;">Marca: ${r.col8} | Turno: ${r.col9} | ${r.hora || ''}</small>
             </div>
-            <div class="item-actions" style="margin-top:8px; align-self:flex-end;">
+            <div class="item-actions" style="margin-top:5px;">
               <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
               <button class="btn-danger" onclick="eliminarRegistro('SOLUBLE', '${r.id}')">🗑️ Borrar</button>
             </div>
@@ -464,7 +456,7 @@
     document.getElementById('opTurno').value = r.col7;
     document.getElementById('opTitular').value = r.col4;
     document.getElementById('opCubre').value = r.col5;
-    document.getElementById('opComentarios').value = r.col6 || '';
+    document.getElementById('opComentarios').value = r.col6;
     document.getElementById('btnSaveOp').textContent = "Actualizar Registro";
     window.scrollTo({top: 0, behavior: 'smooth'});
   }
@@ -481,7 +473,6 @@
     document.getElementById('solPhAnt').value = r.col6;
     document.getElementById('solPhNue').value = r.col7;
     document.getElementById('solMarca').value = r.col8;
-    document.getElementById('solComentarios').value = r.col10 || '';
     document.getElementById('btnSaveSol').textContent = "Actualizar Soluble";
     window.scrollTo({top: 0, behavior: 'smooth'});
   }
