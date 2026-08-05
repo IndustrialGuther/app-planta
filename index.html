@@ -20,6 +20,7 @@
     .btn-full { width: 100%; margin-top: 15px; padding: 12px; }
     .btn-admin { background: var(--admin); }
     .btn-setup { background: var(--setup); }
+    .btn-ws { background: #25d366; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; font-size: 0.95rem; }
     .btn-danger { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     .btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     
@@ -183,6 +184,7 @@
       <div class="filter-box" style="background:#d1fae5;">
         <label style="margin-top:0; color:#047857;">🔍 Mis Set Ups por Fecha:</label>
         <input type="date" id="filterSetupFecha" onchange="renderHistoriales()">
+        <button type="button" class="btn-ws" onclick="copiarReporteWhatsApp()">📲 Copiar Reporte WhatsApp</button>
       </div>
       <div id="historialSetup">Cargando...</div>
     </div>
@@ -302,7 +304,6 @@
     let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  // FORMATO DE MOSTRADO 12 HORAS (AM/PM) PARA TARJETAS Y TABLAS
   function formatHora(h) {
     if(!h) return "";
     let str = String(h).trim();
@@ -334,7 +335,6 @@
     return `${String(hInt).padStart(2,'0')}:${minutes} ${ampm}`;
   }
 
-  // FORMATO 24 HORAS (HH:mm) REQUERIDO POR <input type="time">
   function formatTimeInput(h) {
     if(!h) return "";
     let str = String(h).trim();
@@ -856,7 +856,6 @@
     document.getElementById('solComentarios').value = r.col10 || ''; document.getElementById('btnSaveSol').textContent = "Actualizar Soluble"; window.scrollTo({top: 0});
   }
 
-  // CARGAR EDICIÓN DE SET UP USANDO FORMATTIMEINPUT
   function cargarEdicionSetup(id) {
     let r = dbData.registrosSetup.find(x => x.id == id); if(!r) return; switchTab('setup');
     document.getElementById('editSetupId').value = r.id; 
@@ -870,6 +869,84 @@
     document.getElementById('setupComentarios').value = r.comentarios || '';
     document.getElementById('btnSaveSetup').textContent = "Actualizar Set Up"; 
     window.scrollTo({top: 0});
+  }
+
+  // FUNCIÓN PARA COPIAR EL REPORTE FORMATO WHATSAPP
+  function copiarReporteWhatsApp() {
+    let fechaSel = document.getElementById('filterSetupFecha') ? document.getElementById('filterSetupFecha').value : getTodayString();
+    
+    let setupsDia = dbData.registrosSetup.filter(r => 
+      normalizeDateStr(r.fecha) === fechaSel && 
+      (isAdmin || getSupervisorFromRecord(r).toLowerCase() === currentUser.toLowerCase() || getSupervisorFromRecord(r) === "Desconocido")
+    );
+
+    if (setupsDia.length === 0) {
+      alert("No hay registros de Set Up para la fecha seleccionada.");
+      return;
+    }
+
+    let pend = setupsDia.filter(r => r.estado !== 'Terminado');
+    let term = setupsDia.filter(r => r.estado === 'Terminado');
+
+    let txt = `📋 *REPORTE DE SET UP (${fechaSel})*\n`;
+    txt += `👤 *Supervisor:* ${currentUser || 'N/A'}\n\n`;
+
+    txt += `⏳ *SET UPS PENDIENTES (${pend.length})*\n`;
+    txt += `-----------------------------------\n`;
+    if (pend.length === 0) {
+      txt += `_Sin registros pendientes_\n\n`;
+    } else {
+      pend.forEach((r, idx) => {
+        txt += `${idx + 1}. *Máquina:* ${r.maquina}\n`;
+        txt += `   *Ítem:* ${r.item}\n`;
+        txt += `   *Técnico:* ${r.tecnico}\n`;
+        txt += `   *Inicio:* ${formatHora(r.hInicio)} | *Fin:* En proceso...\n`;
+        txt += `   *Tiempo:* ${r.tiempo || 'En proceso'}\n`;
+        if (r.comentarios) txt += `   *Obs:* ${r.comentarios}\n`;
+        txt += `\n`;
+      });
+    }
+
+    txt += `✅ *SET UPS TERMINADOS (${term.length})*\n`;
+    txt += `-----------------------------------\n`;
+    if (term.length === 0) {
+      txt += `_Sin registros terminados_\n\n`;
+    } else {
+      term.forEach((r, idx) => {
+        txt += `${idx + 1}. *Máquina:* ${r.maquina}\n`;
+        txt += `   *Ítem:* ${r.item}\n`;
+        txt += `   *Técnico:* ${r.tecnico}\n`;
+        txt += `   *Inicio:* ${formatHora(r.hInicio)} | *Fin:* ${formatHora(r.hFin) || '--:--'}\n`;
+        txt += `   *Tiempo:* ${r.tiempo || 'N/A'}\n`;
+        if (r.comentarios) txt += `   *Obs:* ${r.comentarios}\n`;
+        txt += `\n`;
+      });
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(txt).then(() => {
+        alert("¡Reporte copiado con éxito! Puedes ir a WhatsApp y pegarlo.");
+      }).catch(() => {
+        copiarAlternativo(txt);
+      });
+    } else {
+      copiarAlternativo(txt);
+    }
+  }
+
+  function copiarAlternativo(texto) {
+    let textArea = document.createElement("textarea");
+    textArea.value = texto;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      alert("¡Reporte copiado con éxito! Puedes ir a WhatsApp y pegarlo.");
+    } catch (err) {
+      alert("No se pudo copiar el texto automáticamente. Intenta de nuevo.");
+    }
+    document.body.removeChild(textArea);
   }
 
   async function postData(data) { 
