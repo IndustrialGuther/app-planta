@@ -532,16 +532,32 @@
     e.preventDefault();
     let id = document.getElementById('editOpId').value;
     let payload = {
-      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP", id: id || ("ID_" + new Date().getTime()),
-      fecha: document.getElementById('opFecha').value, hora: new Date().toLocaleTimeString(),
-      maquina: document.getElementById('opMaquina').value, operador: document.getElementById('opTitular').value,
-      cubre: document.getElementById('opCubre').value || "Ninguno", comentarios: document.getElementById('opComentarios').value,
-      turno: document.getElementById('opTurno').value, usuario: currentUser
+      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP", 
+      id: id || ("ID_" + new Date().getTime()),
+      fecha: document.getElementById('opFecha').value, 
+      hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('opMaquina').value, 
+      col4: document.getElementById('opTitular').value,
+      col5: document.getElementById('opCubre').value || "Ninguno", 
+      col6: document.getElementById('opComentarios').value,
+      col7: document.getElementById('opTurno').value, 
+      usuario: currentUser
     };
-    if(id) { let idx = dbData.registrosOperadores.findIndex(x => x.id == id); if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], fecha: payload.fecha, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno }; } 
-    else dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
-    document.getElementById('filterOpFecha').value = payload.fecha; renderHistoriales(); await postData(payload);
-    e.target.reset(); document.getElementById('editOpId').value = ''; document.getElementById('btnSaveOp').textContent = "Guardar Registro"; document.getElementById('opFecha').value = getTodayString();
+
+    if(id) { 
+      let idx = dbData.registrosOperadores.findIndex(x => x.id == id); 
+      if(idx !== -1) dbData.registrosOperadores[idx] = payload; 
+    } else {
+      dbData.registrosOperadores.unshift(payload);
+    }
+
+    document.getElementById('filterOpFecha').value = payload.fecha; 
+    renderHistoriales(); 
+    await postData(payload);
+    e.target.reset(); 
+    document.getElementById('editOpId').value = ''; 
+    document.getElementById('btnSaveOp').textContent = "Guardar Registro"; 
+    document.getElementById('opFecha').value = getTodayString();
     setTimeout(syncData, 3000);
   }
 
@@ -549,16 +565,71 @@
     e.preventDefault();
     let id = document.getElementById('editSolId').value;
     let payload = {
-      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL", id: id || ("ID_" + new Date().getTime()),
-      fecha: document.getElementById('solFecha').value, hora: new Date().toLocaleTimeString(),
-      maquina: document.getElementById('solMaquina').value, brixAnt: document.getElementById('solBrixAnt').value,
-      brixNue: document.getElementById('solBrixNue').value, phAnt: document.getElementById('solPhAnt').value, phNue: document.getElementById('solPhNue').value,
-      marca: document.getElementById('solMarca').value, turno: document.getElementById('solTurno').value, comentarios: document.getElementById('solComentarios').value, usuario: currentUser
+      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL", 
+      id: id || ("ID_" + new Date().getTime()),
+      fecha: document.getElementById('solFecha').value, 
+      hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('solMaquina').value, 
+      col4: document.getElementById('solBrixAnt').value,
+      col5: document.getElementById('solBrixNue').value, 
+      col6: document.getElementById('solPhAnt').value, 
+      col7: document.getElementById('solPhNue').value,
+      col8: document.getElementById('solMarca').value, 
+      col9: document.getElementById('solTurno').value, 
+      col10: document.getElementById('solComentarios').value, 
+      usuario: currentUser
     };
-    if(id) { let idx = dbData.registrosSolubles.findIndex(x => x.id == id); if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], fecha: payload.fecha, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios }; } 
-    else dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: currentUser });
-    document.getElementById('filterSolFecha').value = payload.fecha; renderHistoriales(); await postData(payload);
-    e.target.reset(); document.getElementById('editSolId').value = ''; document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; document.getElementById('solFecha').value = getTodayString();
+
+    if(id) { 
+      let idx = dbData.registrosSolubles.findIndex(x => x.id == id); 
+      if(idx !== -1) dbData.registrosSolubles[idx] = payload; 
+    } else {
+      dbData.registrosSolubles.unshift(payload);
+    }
+
+    document.getElementById('filterSolFecha').value = payload.fecha; 
+    renderHistoriales(); 
+    await postData(payload);
+    e.target.reset(); 
+    document.getElementById('editSolId').value = ''; 
+    document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; 
+    document.getElementById('solFecha').value = getTodayString();
+    setTimeout(syncData, 3000);
+  }
+
+  async function guardarSetup(e) {
+    e.preventDefault();
+    let id = document.getElementById('editSetupId').value;
+    let hFin = document.getElementById('setupHoraFin').value;
+    let payload = {
+      action: id ? "EDIT_REGISTRO_SETUP" : "ADD_REGISTRO_SETUP",
+      id: id || ("SET_" + new Date().getTime()),
+      fecha: document.getElementById('setupFecha').value,
+      maquina: document.getElementById('setupMaquina').value,
+      item: document.getElementById('setupItem').value,
+      tecnico: document.getElementById('setupTecnico').value,
+      hInicio: document.getElementById('setupHoraInicio').value,
+      hFin: hFin,
+      tiempo: document.getElementById('setupTiempo').value,
+      estado: hFin ? "Terminado" : "Pendiente",
+      comentarios: document.getElementById('setupComentarios').value,
+      usuario: currentUser
+    };
+
+    if(id) {
+      let idx = dbData.registrosSetup.findIndex(x => x.id == id);
+      if(idx !== -1) dbData.registrosSetup[idx] = payload;
+    } else {
+      dbData.registrosSetup.unshift(payload);
+    }
+    
+    document.getElementById('filterSetupFecha').value = payload.fecha;
+    renderHistoriales();
+    await postData(payload);
+    e.target.reset();
+    document.getElementById('editSetupId').value = '';
+    document.getElementById('btnSaveSetup').textContent = "Guardar Set Up";
+    document.getElementById('setupFecha').value = getTodayString();
     setTimeout(syncData, 3000);
   }
 
