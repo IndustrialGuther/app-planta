@@ -491,7 +491,7 @@
     let id = document.getElementById('editSetupId').value;
     let hFin = document.getElementById('setupHoraFin').value;
     let payload = {
-      action: id ? "EDIT_REGISTRO_SETUP" : "ADD_REGISTRO_SETUP",
+      action: id ? "EDIT_REGISTRO_SET" : "ADD_REGISTRO_SET",
       id: id || ("SET_" + new Date().getTime()),
       fecha: document.getElementById('setupFecha').value,
       maquina: document.getElementById('setupMaquina').value,
@@ -593,7 +593,7 @@
             <small><b>Tec:</b> ${r.tecnico} | <b>Inicio:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${formatHora(r.hFin) || '--:--'} (${r.tiempo || 'N/A'})</small><br>
             <small style="color:#64748b;">${r.comentarios ? 'Obs: '+r.comentarios : ''}</small>
           </div>
-          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSetup('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>
+          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSetup('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SET', '${r.id}')">🗑️</button></div>
         </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
     }
   }
@@ -605,7 +605,7 @@
 
     document.getElementById('adminHistOp').innerHTML = filtrar(dbData.registrosOperadores).map(r => `<div class="item-row"><b>${r.maquina}</b> | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('OP', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
     document.getElementById('adminHistSol').innerHTML = filtrar(dbData.registrosSolubles).map(r => `<div class="item-row"><b>${r.maquina}</b> | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SOL', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
-    document.getElementById('adminHistSetup').innerHTML = filtrar(dbData.registrosSetup).map(r => `<div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}"><b>${r.maquina}</b> - ${r.item} (${r.estado}) | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
+    document.getElementById('adminHistSetup').innerHTML = filtrar(dbData.registrosSetup).map(r => `<div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}"><b>${r.maquina}</b> - ${r.item} (${r.estado}) | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SET', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
   }
 
   function renderTV() {
@@ -688,7 +688,7 @@
         if(idx !== -1) dbData[key][idx] = newVal;
       }
       renderDataLists();
-      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, val2: newVal });
+      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, newVal1: newVal });
       syncData();
     }
   }
@@ -718,11 +718,11 @@
     if(orig) {
       let idx = dbData.usuarios.findIndex(x => x.user === orig);
       if(idx !== -1) dbData.usuarios[idx] = { user: u, pass: p, permisos: permStr };
-      await postData({ action: "EDIT_USER", origUser: orig, newUser: u, pass: p, permisos: permStr });
+      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: "Usuarios", val1: orig, newVal1: u, newVal2: p, newVal3: permStr });
     } else {
       if(dbData.usuarios.find(x => x.user === u)) return alert("Usuario ya existe");
       dbData.usuarios.push({ user: u, pass: p, permisos: permStr });
-      await postData({ action: "ADD_USER", user: u, pass: p, permisos: permStr });
+      await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Usuarios", val1: u, val2: p, val3: permStr });
     }
     cancelarEdicionUser();
     syncData();
@@ -758,7 +758,7 @@
     if(confirm("¿Borrar este registro?")) {
       if(tipo === 'OP') dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id != id);
       else if(tipo === 'SOL') dbData.registrosSolubles = dbData.registrosSolubles.filter(x => x.id != id);
-      else if(tipo === 'SETUP') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
+      else if(tipo === 'SET') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
       renderHistoriales(); if(isAdmin) renderAdminHistorial();
       await postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
       syncData();
@@ -790,7 +790,7 @@
 
   async function postData(data) { 
     try {
-      await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); 
+      await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(data) }); 
     } catch(e) { console.error("Error posteando datos:", e); }
   }
 
