@@ -162,7 +162,7 @@
         
         <div style="display:flex; gap:10px; margin-top:10px;">
           <div style="flex:1;">
-            <label style="margin-top:0;">Hora Inicio (24h)</label>
+            <label style="margin-top:0;">Hora Inicio (AM/PM)</label>
             <input type="time" id="setupHoraInicio" required onchange="calcularTiempoSetup()">
           </div>
           <div style="flex:1;">
@@ -301,29 +301,36 @@
     let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  // NUEVA FUNCIÓN PARA FORMATO 12H (AM/PM)
   function formatHora(h) {
     if(!h) return "";
     let str = String(h).trim();
+    let timeStr = "";
+    
+    // Extracción de la hora según cómo venga formateada
     if(str.includes("T")) {
       let timePart = str.split("T")[1];
-      if(timePart) {
-        let subParts = timePart.split(":");
-        return `${subParts[0].padStart(2,'0')}:${subParts[1].padStart(2,'0')}`;
-      }
-    }
-    if(str.includes(" ")) {
+      if(timePart) timeStr = timePart.split(":").slice(0,2).join(":");
+    } else if(str.includes(" ")) {
       let parts = str.split(" ");
       let timePart = parts.find(p => p.includes(":"));
-      if(timePart) {
-        let sub = timePart.split(":");
-        return `${sub[0].padStart(2,'0')}:${sub[1].padStart(2,'0')}`;
-      }
+      if(timePart) timeStr = timePart.split(":").slice(0,2).join(":");
+    } else if(str.includes(":")) {
+      timeStr = str.split(":").slice(0,2).join(":");
+    } else {
+      return str;
     }
-    if(str.includes(":")) {
-      let parts = str.split(":");
-      return `${parts[0].padStart(2,'0')}:${parts[1].padStart(2,'0')}`;
-    }
-    return str;
+
+    if(!timeStr) return str;
+
+    // Conversión a AM/PM
+    let [hours, minutes] = timeStr.split(":");
+    let hInt = parseInt(hours, 10);
+    let ampm = hInt >= 12 ? 'PM' : 'AM';
+    hInt = hInt % 12;
+    hInt = hInt ? hInt : 12; // La hora 0 (medianoche) se convierte en 12
+
+    return `${String(hInt).padStart(2,'0')}:${minutes} ${ampm}`;
   }
 
   function getSupervisorFromRecord(r) {
