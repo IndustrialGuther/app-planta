@@ -40,6 +40,7 @@
     .chk-group label { margin-top: 0; font-weight: normal; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
     .chk-group input { width: auto; margin: 0; }
 
+    /* TV Dashboard Styles */
     .tv-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
     .tv-panel { padding: 15px; border-radius: 12px; border: 2px solid; }
     .tv-panel h2 { text-align: center; margin-bottom: 15px; font-size: 1.5rem; }
@@ -301,13 +302,12 @@
     let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  // NUEVA FUNCIÓN PARA FORMATO 12H (AM/PM)
+  // FORMATO 12 HORAS (AM/PM)
   function formatHora(h) {
     if(!h) return "";
     let str = String(h).trim();
     let timeStr = "";
     
-    // Extracción de la hora según cómo venga formateada
     if(str.includes("T")) {
       let timePart = str.split("T")[1];
       if(timePart) timeStr = timePart.split(":").slice(0,2).join(":");
@@ -323,12 +323,13 @@
 
     if(!timeStr) return str;
 
-    // Conversión a AM/PM
     let [hours, minutes] = timeStr.split(":");
     let hInt = parseInt(hours, 10);
+    if(isNaN(hInt)) return str;
+    
     let ampm = hInt >= 12 ? 'PM' : 'AM';
     hInt = hInt % 12;
-    hInt = hInt ? hInt : 12; // La hora 0 (medianoche) se convierte en 12
+    hInt = hInt ? hInt : 12;
 
     return `${String(hInt).padStart(2,'0')}:${minutes} ${ampm}`;
   }
@@ -492,112 +493,8 @@
     } else { txt.value = ""; }
   }
 
-  async function guardarSetup(e) {
-    e.preventDefault();
-    let id = document.getElementById('editSetupId').value;
-    let hFin = document.getElementById('setupHoraFin').value;
-    let payload = {
-      action: id ? "EDIT_REGISTRO_SET" : "ADD_REGISTRO_SET",
-      id: id || ("SET_" + new Date().getTime()),
-      fecha: document.getElementById('setupFecha').value,
-      maquina: document.getElementById('setupMaquina').value,
-      item: document.getElementById('setupItem').value,
-      tecnico: document.getElementById('setupTecnico').value,
-      hInicio: document.getElementById('setupHoraInicio').value,
-      hFin: hFin,
-      tiempo: document.getElementById('setupTiempo').value,
-      estado: hFin ? "Terminado" : "Pendiente",
-      comentarios: document.getElementById('setupComentarios').value,
-      usuario: currentUser
-    };
-
-    if(id) {
-      let idx = dbData.registrosSetup.findIndex(x => x.id == id);
-      if(idx !== -1) dbData.registrosSetup[idx] = payload;
-    } else {
-      dbData.registrosSetup.unshift(payload);
-    }
-    
-    document.getElementById('filterSetupFecha').value = payload.fecha;
-    renderHistoriales();
-    await postData(payload);
-    e.target.reset();
-    document.getElementById('editSetupId').value = '';
-    document.getElementById('btnSaveSetup').textContent = "Guardar Set Up";
-    document.getElementById('setupFecha').value = getTodayString();
-    setTimeout(syncData, 3000);
-  }
-
-  async function guardarOperador(e) {
-    e.preventDefault();
-    let id = document.getElementById('editOpId').value;
-    let payload = {
-      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP", 
-      id: id || ("ID_" + new Date().getTime()),
-      fecha: document.getElementById('opFecha').value, 
-      hora: new Date().toLocaleTimeString(),
-      maquina: document.getElementById('opMaquina').value, 
-      col4: document.getElementById('opTitular').value,
-      col5: document.getElementById('opCubre').value || "Ninguno", 
-      col6: document.getElementById('opComentarios').value,
-      col7: document.getElementById('opTurno').value, 
-      usuario: currentUser
-    };
-
-    if(id) { 
-      let idx = dbData.registrosOperadores.findIndex(x => x.id == id); 
-      if(idx !== -1) dbData.registrosOperadores[idx] = payload; 
-    } else {
-      dbData.registrosOperadores.unshift(payload);
-    }
-
-    document.getElementById('filterOpFecha').value = payload.fecha; 
-    renderHistoriales(); 
-    await postData(payload);
-    e.target.reset(); 
-    document.getElementById('editOpId').value = ''; 
-    document.getElementById('btnSaveOp').textContent = "Guardar Registro"; 
-    document.getElementById('opFecha').value = getTodayString();
-    setTimeout(syncData, 3000);
-  }
-
-  async function guardarSoluble(e) {
-    e.preventDefault();
-    let id = document.getElementById('editSolId').value;
-    let payload = {
-      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL", 
-      id: id || ("ID_" + new Date().getTime()),
-      fecha: document.getElementById('solFecha').value, 
-      hora: new Date().toLocaleTimeString(),
-      maquina: document.getElementById('solMaquina').value, 
-      col4: document.getElementById('solBrixAnt').value,
-      col5: document.getElementById('solBrixNue').value, 
-      col6: document.getElementById('solPhAnt').value, 
-      col7: document.getElementById('solPhNue').value,
-      col8: document.getElementById('solMarca').value, 
-      col9: document.getElementById('solTurno').value, 
-      col10: document.getElementById('solComentarios').value, 
-      usuario: currentUser
-    };
-
-    if(id) { 
-      let idx = dbData.registrosSolubles.findIndex(x => x.id == id); 
-      if(idx !== -1) dbData.registrosSolubles[idx] = payload; 
-    } else {
-      dbData.registrosSolubles.unshift(payload);
-    }
-
-    document.getElementById('filterSolFecha').value = payload.fecha; 
-    renderHistoriales(); 
-    await postData(payload);
-    e.target.reset(); 
-    document.getElementById('editSolId').value = ''; 
-    document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; 
-    document.getElementById('solFecha').value = getTodayString();
-    setTimeout(syncData, 3000);
-  }
-
-  async function guardarSetup(e) {
+  // GUARDAR SET UP (RESPUESTA INSTANTÁNEA)
+  function guardarSetup(e) {
     e.preventDefault();
     let id = document.getElementById('editSetupId').value;
     let hFin = document.getElementById('setupHoraFin').value;
@@ -625,12 +522,83 @@
     
     document.getElementById('filterSetupFecha').value = payload.fecha;
     renderHistoriales();
-    await postData(payload);
     e.target.reset();
     document.getElementById('editSetupId').value = '';
     document.getElementById('btnSaveSetup').textContent = "Guardar Set Up";
     document.getElementById('setupFecha').value = getTodayString();
-    setTimeout(syncData, 3000);
+    
+    postData(payload);
+  }
+
+  // GUARDAR OPERADOR (LLAVES CORREGIDAS COL4-COL7 + RESPUESTA INSTANTÁNEA)
+  function guardarOperador(e) {
+    e.preventDefault();
+    let id = document.getElementById('editOpId').value;
+    let payload = {
+      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP", 
+      id: id || ("ID_" + new Date().getTime()),
+      fecha: document.getElementById('opFecha').value, 
+      hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('opMaquina').value, 
+      col4: document.getElementById('opTitular').value,
+      col5: document.getElementById('opCubre').value || "Ninguno", 
+      col6: document.getElementById('opComentarios').value,
+      col7: document.getElementById('opTurno').value, 
+      usuario: currentUser
+    };
+
+    if(id) { 
+      let idx = dbData.registrosOperadores.findIndex(x => x.id == id); 
+      if(idx !== -1) dbData.registrosOperadores[idx] = payload; 
+    } else {
+      dbData.registrosOperadores.unshift(payload);
+    }
+
+    document.getElementById('filterOpFecha').value = payload.fecha; 
+    renderHistoriales(); 
+    e.target.reset(); 
+    document.getElementById('editOpId').value = ''; 
+    document.getElementById('btnSaveOp').textContent = "Guardar Registro"; 
+    document.getElementById('opFecha').value = getTodayString();
+
+    postData(payload);
+  }
+
+  // GUARDAR SOLUBLE (LLAVES CORREGIDAS COL4-COL10 + RESPUESTA INSTANTÁNEA)
+  function guardarSoluble(e) {
+    e.preventDefault();
+    let id = document.getElementById('editSolId').value;
+    let payload = {
+      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL", 
+      id: id || ("ID_" + new Date().getTime()),
+      fecha: document.getElementById('solFecha').value, 
+      hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('solMaquina').value, 
+      col4: document.getElementById('solBrixAnt').value,
+      col5: document.getElementById('solBrixNue').value, 
+      col6: document.getElementById('solPhAnt').value, 
+      col7: document.getElementById('solPhNue').value,
+      col8: document.getElementById('solMarca').value, 
+      col9: document.getElementById('solTurno').value, 
+      col10: document.getElementById('solComentarios').value, 
+      usuario: currentUser
+    };
+
+    if(id) { 
+      let idx = dbData.registrosSolubles.findIndex(x => x.id == id); 
+      if(idx !== -1) dbData.registrosSolubles[idx] = payload; 
+    } else {
+      dbData.registrosSolubles.unshift(payload);
+    }
+
+    document.getElementById('filterSolFecha').value = payload.fecha; 
+    renderHistoriales(); 
+    e.target.reset(); 
+    document.getElementById('editSolId').value = ''; 
+    document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; 
+    document.getElementById('solFecha').value = getTodayString();
+
+    postData(payload);
   }
 
   function renderHistoriales() {
@@ -670,7 +638,7 @@
             <small><b>Tec:</b> ${r.tecnico} | <b>Inicio:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${formatHora(r.hFin) || '--:--'} (${r.tiempo || 'N/A'})</small><br>
             <small style="color:#64748b;">${r.comentarios ? 'Obs: '+r.comentarios : ''}</small>
           </div>
-          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSetup('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SET', '${r.id}')">🗑️</button></div>
+          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSetup('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>
         </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
     }
   }
@@ -682,7 +650,7 @@
 
     document.getElementById('adminHistOp').innerHTML = filtrar(dbData.registrosOperadores).map(r => `<div class="item-row"><b>${r.maquina}</b> | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('OP', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
     document.getElementById('adminHistSol').innerHTML = filtrar(dbData.registrosSolubles).map(r => `<div class="item-row"><b>${r.maquina}</b> | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SOL', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
-    document.getElementById('adminHistSetup').innerHTML = filtrar(dbData.registrosSetup).map(r => `<div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}"><b>${r.maquina}</b> - ${r.item} (${r.estado}) | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SET', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
+    document.getElementById('adminHistSetup').innerHTML = filtrar(dbData.registrosSetup).map(r => `<div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}"><b>${r.maquina}</b> - ${r.item} (${r.estado}) | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
   }
 
   function renderTV() {
@@ -715,6 +683,7 @@
     document.getElementById('tvTerminados').innerHTML = term.length ? term.map(r => cardHTML(r, true)).join('') : '<p style="text-align:center; color:#64748b; margin-top:20px;">Aún no hay Set Ups terminados.</p>';
   }
 
+  // ADMIN - RENDERIZADO DE CATÁLOGOS CON BOTÓN EDICIÓN
   function renderAdminLists() {
     ['Maquinas','Operadores','Turnos','Marcas','Items','Tecnicos'].forEach(cat => {
       let el = document.getElementById(`listAdmin${cat}`);
@@ -743,18 +712,17 @@
     }
   }
 
-  async function addCat(cat, inputId) {
+  function addCat(cat, inputId) {
     let v = document.getElementById(inputId).value.trim(); 
     if(!v) return alert("Escribe un nombre válido");
     let key = cat.toLowerCase(); 
     if(dbData[key]) dbData[key].push(v);
     renderDataLists(); 
     document.getElementById(inputId).value = '';
-    await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); 
-    setTimeout(syncData, 3000);
+    postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); 
   }
 
-  async function editCat(cat, oldVal) {
+  function editCat(cat, oldVal) {
     let newVal = prompt(`Editar en ${cat}:`, oldVal);
     if(newVal && newVal.trim() !== "" && newVal !== oldVal) {
       newVal = newVal.trim();
@@ -764,22 +732,21 @@
         if(idx !== -1) dbData[key][idx] = newVal;
       }
       renderDataLists();
-      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, newVal1: newVal });
-      setTimeout(syncData, 3000);
+      postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, val2: newVal });
     }
   }
 
-  async function delCat(cat, val) {
+  function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       let key = cat.toLowerCase();
-      if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
+      if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); 
+      else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
       renderDataLists(); 
-      await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
-      setTimeout(syncData, 3000);
+      postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
     }
   }
 
-  async function guardarUsuario() {
+  function guardarUsuario() {
     let orig = document.getElementById('editUserOrig').value;
     let u = document.getElementById('addUserName').value.trim();
     let p = document.getElementById('addUserPass').value.trim();
@@ -794,14 +761,14 @@
     if(orig) {
       let idx = dbData.usuarios.findIndex(x => x.user === orig);
       if(idx !== -1) dbData.usuarios[idx] = { user: u, pass: p, permisos: permStr };
-      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: "Usuarios", val1: orig, newVal1: u, newVal2: p, newVal3: permStr });
+      postData({ action: "EDIT_USER", origUser: orig, newUser: u, pass: p, permisos: permStr });
     } else {
       if(dbData.usuarios.find(x => x.user === u)) return alert("Usuario ya existe");
       dbData.usuarios.push({ user: u, pass: p, permisos: permStr });
-      await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Usuarios", val1: u, val2: p, val3: permStr });
+      postData({ action: "ADD_USER", user: u, pass: p, permisos: permStr });
     }
     cancelarEdicionUser();
-    setTimeout(syncData, 3000);
+    renderDataLists();
   }
 
   function editarUsuarioUI(user) {
@@ -830,14 +797,16 @@
     document.getElementById('btnCancelUser').style.display = 'none';
   }
 
-  async function eliminarRegistro(tipo, id) {
+  function eliminarRegistro(tipo, id) {
     if(confirm("¿Borrar este registro?")) {
       if(tipo === 'OP') dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id != id);
       else if(tipo === 'SOL') dbData.registrosSolubles = dbData.registrosSolubles.filter(x => x.id != id);
-      else if(tipo === 'SET') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
-      renderHistoriales(); if(isAdmin) renderAdminHistorial();
-      await postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
-      setTimeout(syncData, 3000);
+      else if(tipo === 'SETUP') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
+      
+      renderHistoriales(); 
+      if(isAdmin) renderAdminHistorial();
+      
+      postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
     }
   }
 
@@ -866,7 +835,7 @@
 
   async function postData(data) { 
     try {
-      await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(data) }); 
+      await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); 
     } catch(e) { console.error("Error posteando datos:", e); }
   }
 
