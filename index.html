@@ -8,7 +8,7 @@
     :root { --primary: #0284c7; --admin: #0f172a; --setup: #059669; --bg: #f8fafc; --card: #ffffff; }
     body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
     .container { max-width: 750px; margin: 0 auto; }
-    .tv-container { max-width: 1200px; margin: 0 auto; }
+    .tv-container { max-width: 1300px; margin: 0 auto; }
     .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
     h2, h3 { margin-top: 0; color: var(--primary); }
     h2.setup-title { color: var(--setup); }
@@ -22,7 +22,6 @@
     .btn-setup { background: var(--setup); }
     .btn-danger { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     .btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-    .btn-success { background: #10b981; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     
     .tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
     .tab-btn { background: #e2e8f0; color: #475569; padding: 10px 5px; border-radius: 6px; flex: 1; min-width: 90px; border: none; font-weight: bold; font-size: 0.85rem; text-align: center; }
@@ -45,11 +44,15 @@
     .tv-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
     .tv-panel { padding: 15px; border-radius: 12px; border: 2px solid; }
     .tv-panel h2 { text-align: center; margin-bottom: 15px; font-size: 1.5rem; }
-    .tv-pendientes { border-color: #f59e0b; background: #fffbeb; }
-    .tv-pendientes h2 { color: #d97706; }
-    .tv-terminados { border-color: #10b981; background: #ecfdf5; }
-    .tv-terminados h2 { color: #059669; }
-    .tv-card { background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); font-size: 1.1rem; }
+    .tv-pendientes { border-color: #f59e0b; background: #1e1b4b; color: white; }
+    .tv-pendientes h2 { color: #fbbf24; }
+    .tv-terminados { border-color: #10b981; background: #064e3b; color: white; }
+    .tv-terminados h2 { color: #34d399; }
+    
+    .tv-card { background: #0f172a; padding: 14px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 1.05rem; border: 1px solid #334155; }
+    .tv-card-term { background: #022c22; border-color: #065f46; }
+    .pulse-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981; margin-right: 6px; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     @media(min-width: 768px){ .tv-grid { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
@@ -160,7 +163,7 @@
         
         <div style="display:flex; gap:10px; margin-top:10px;">
           <div style="flex:1;">
-            <label style="margin-top:0;">Hora Inicio</label>
+            <label style="margin-top:0;">Hora Inicio (24h)</label>
             <input type="time" id="setupHoraInicio" required onchange="calcularTiempoSetup()">
           </div>
           <div style="flex:1;">
@@ -259,12 +262,15 @@
   </div>
 </div>
 
-<!-- PIZARRA TV (OCUPA TODA LA PANTALLA) -->
+<!-- PIZARRA TV -->
 <div id="panelTV" class="tv-container hidden">
-  <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; color:white; padding:15px 20px; border-radius:12px; margin-bottom:20px;">
-    <h1 style="margin:0;">📺 Monitor de Set Ups</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; color:white; padding:15px 20px; border-radius:12px; margin-bottom:20px; border:1px solid #334155;">
+    <div>
+      <h1 style="margin:0; font-size:1.8rem;"><span class="pulse-dot"></span>Monitor de Set Ups en Vivo</h1>
+      <small style="color:#94a3b8;">Sincronizado en tiempo real</small>
+    </div>
     <div style="display:flex; gap:10px; align-items:center;">
-      <input type="date" id="tvFilterFecha" onchange="renderTV()" style="margin:0; width:150px; font-weight:bold;">
+      <input type="date" id="tvFilterFecha" onchange="renderTV()" style="margin:0; width:160px; font-weight:bold; background:#1e293b; color:white; border:1px solid #475569;">
       <button onclick="cerrarTV()" class="btn-danger">Cerrar Monitor</button>
     </div>
   </div>
@@ -287,13 +293,39 @@
 <datalist id="listTecnicos"></datalist>
 
 <script>
-  // NOTA IMPORTANTE: Debes actualizar el GAS (backend) para que administre 'registrosSetup', 'items', 'tecnicos' y la columna de permisos de usuarios.
   const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
   let dbData = { maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[] };
   let currentUser = null, isAdmin = false;
+  let tvInterval = null;
 
   function getTodayString() {
     let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // PARSEADOR Y FORMATEADOR DE HORA
+  function formatHora(h) {
+    if(!h) return "";
+    let str = String(h).trim();
+    if(str.includes("T")) {
+      let timePart = str.split("T")[1];
+      if(timePart) {
+        let subParts = timePart.split(":");
+        return `${subParts[0].padStart(2,'0')}:${subParts[1].padStart(2,'0')}`;
+      }
+    }
+    if(str.includes(" ")) {
+      let parts = str.split(" ");
+      let timePart = parts[3] || parts[1];
+      if(timePart && timePart.includes(":")) {
+        let sub = timePart.split(":");
+        return `${sub[0].padStart(2,'0')}:${sub[1].padStart(2,'0')}`;
+      }
+    }
+    if(str.includes(":")) {
+      let parts = str.split(":");
+      return `${parts[0].padStart(2,'0')}:${parts[1].padStart(2,'0')}`;
+    }
+    return str;
   }
 
   function getSupervisorFromRecord(r) {
@@ -316,7 +348,7 @@
     return str;
   }
 
-  async function init() {
+  async function syncData() {
     try {
       let res = await fetch(API_URL);
       let data = await res.json();
@@ -326,7 +358,14 @@
         registrosOperadores: data.registrosOperadores || [], registrosSolubles: data.registrosSolubles || [], registrosSetup: data.registrosSetup || []
       };
       renderDataLists();
-    } catch(e) { console.error("Error al cargar datos:", e); }
+      if(!document.getElementById('panelTV').classList.contains('hidden')) {
+        renderTV();
+      }
+    } catch(e) { console.error("Error al sincronizar datos:", e); }
+  }
+
+  async function init() {
+    await syncData();
   }
 
   function renderDataLists() {
@@ -364,7 +403,7 @@
 
     if(val) {
       currentUser = val.user; isAdmin = false;
-      let permisos = val.permisos ? val.permisos.toUpperCase() : "OP,SOL"; // Fallback por defecto
+      let permisos = val.permisos ? val.permisos.toUpperCase() : "OP,SOL";
       
       document.getElementById('userDisp').textContent = `Supervisor: ${currentUser}`;
       document.getElementById('secLogin').classList.add('hidden');
@@ -406,12 +445,16 @@
   function cerrarSesion() { location.reload(); }
 
   function switchTab(t) {
+    if(tvInterval) clearInterval(tvInterval);
+
     if(t === 'tv') {
       document.getElementById('mainContainer').classList.add('hidden');
       document.getElementById('panelTV').classList.remove('hidden');
-      document.body.style.background = "#0f172a";
+      document.body.style.background = "#020617";
       document.getElementById('tvFilterFecha').value = getTodayString();
       renderTV();
+      // Auto actualiza el monitor cada 10 segundos
+      tvInterval = setInterval(syncData, 10000);
       return;
     }
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'admin-active'));
@@ -426,12 +469,13 @@
   }
 
   function cerrarTV() {
+    if(tvInterval) clearInterval(tvInterval);
     document.getElementById('panelTV').classList.add('hidden');
     document.getElementById('mainContainer').classList.remove('hidden');
     document.body.style.background = "var(--bg)";
   }
 
-  // --- LOGICA DE SET UP ---
+  // LOGICA SET UP
   function calcularTiempoSetup() {
     let ini = document.getElementById('setupHoraInicio').value;
     let fin = document.getElementById('setupHoraFin').value;
@@ -441,11 +485,11 @@
       let d2 = new Date("2000-01-01T" + fin);
       let diffMins = (d2 - d1) / 60000;
       if(diffMins < 0) diffMins += (24 * 60);
-      txt.value = diffMins + " minutos";
+      txt.value = Math.round(diffMins) + " mins";
     } else { txt.value = ""; }
   }
 
-  function guardarSetup(e) {
+  async function guardarSetup(e) {
     e.preventDefault();
     let id = document.getElementById('editSetupId').value;
     let hFin = document.getElementById('setupHoraFin').value;
@@ -473,15 +517,16 @@
     
     document.getElementById('filterSetupFecha').value = payload.fecha;
     renderHistoriales();
-    postData(payload);
+    await postData(payload);
     e.target.reset();
     document.getElementById('editSetupId').value = '';
     document.getElementById('btnSaveSetup').textContent = "Guardar Set Up";
     document.getElementById('setupFecha').value = getTodayString();
+    syncData();
   }
 
-  // --- LOGICA OP & SOLUBLES ---
-  function guardarOperador(e) {
+  // LOGICA OP & SOL
+  async function guardarOperador(e) {
     e.preventDefault();
     let id = document.getElementById('editOpId').value;
     let payload = {
@@ -493,11 +538,12 @@
     };
     if(id) { let idx = dbData.registrosOperadores.findIndex(x => x.id == id); if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], fecha: payload.fecha, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno }; } 
     else dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
-    document.getElementById('filterOpFecha').value = payload.fecha; renderHistoriales(); postData(payload);
+    document.getElementById('filterOpFecha').value = payload.fecha; renderHistoriales(); await postData(payload);
     e.target.reset(); document.getElementById('editOpId').value = ''; document.getElementById('btnSaveOp').textContent = "Guardar Registro"; document.getElementById('opFecha').value = getTodayString();
+    syncData();
   }
 
-  function guardarSoluble(e) {
+  async function guardarSoluble(e) {
     e.preventDefault();
     let id = document.getElementById('editSolId').value;
     let payload = {
@@ -509,8 +555,9 @@
     };
     if(id) { let idx = dbData.registrosSolubles.findIndex(x => x.id == id); if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], fecha: payload.fecha, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios }; } 
     else dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: currentUser });
-    document.getElementById('filterSolFecha').value = payload.fecha; renderHistoriales(); postData(payload);
+    document.getElementById('filterSolFecha').value = payload.fecha; renderHistoriales(); await postData(payload);
     e.target.reset(); document.getElementById('editSolId').value = ''; document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; document.getElementById('solFecha').value = getTodayString();
+    syncData();
   }
 
   function renderHistoriales() {
@@ -550,7 +597,7 @@
         <div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}" style="flex-direction:column; align-items:flex-start;">
           <div style="width:100%;">
             <b>${r.maquina} - ${r.item}</b> <span style="font-size:0.75rem; padding:2px 6px; border-radius:4px; background:${r.estado==='Terminado'?'#10b981':'#f59e0b'}; color:white;">${r.estado}</span><br>
-            <small><b>Tec:</b> ${r.tecnico} | <b>De:</b> ${r.hInicio} <b>A:</b> ${r.hFin || '--:--'} (${r.tiempo || 'N/A'})</small><br>
+            <small><b>Tec:</b> ${r.tecnico} | <b>Inicio:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${formatHora(r.hFin) || '--:--'} (${r.tiempo || 'N/A'})</small><br>
             <small style="color:#64748b;">${r.comentarios ? 'Obs: '+r.comentarios : ''}</small>
           </div>
           <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSetup('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>
@@ -575,25 +622,30 @@
     let pend = setupsDia.filter(r => r.estado !== 'Terminado');
     let term = setupsDia.filter(r => r.estado === 'Terminado');
 
-    const cardHTML = r => `
-      <div class="tv-card">
-        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-          <strong>🏭 ${r.maquina}</strong> 
-          <span style="color:#64748b;">Sup: ${getSupervisorFromRecord(r)}</span>
+    const cardHTML = (r, esTerminado) => `
+      <div class="tv-card ${esTerminado ? 'tv-card-term' : ''}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <strong style="font-size:1.2rem; color:#f8fafc;">🏭 ${r.maquina}</strong> 
+          <span style="color:#94a3b8; font-size:0.85rem;">Sup: ${getSupervisorFromRecord(r)}</span>
         </div>
-        <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${r.item}</div>
-        <div style="margin-top:5px; color:#334155;">🔧 Técnico: ${r.tecnico}</div>
-        <div style="margin-top:5px; display:flex; justify-content:space-between; font-size:0.95rem;">
-          <span>⏱️ Inicio: <b>${r.hInicio}</b></span>
-          ${r.hFin ? `<span>Fin: <b>${r.hFin}</b> (${r.tiempo})</span>` : `<span style="color:#f59e0b; font-weight:bold;">En proceso...</span>`}
+        <div style="font-size:1.25rem; font-weight:bold; color:#38bdf8; margin-bottom:4px;">${r.item}</div>
+        <div style="color:#cbd5e1; font-size:0.95rem;">🔧 Técnico: <b>${r.tecnico}</b></div>
+        
+        <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #334155; display:flex; justify-content:space-between; font-size:0.95rem; color:#e2e8f0;">
+          <span>⏱️ Inicio: <b>${formatHora(r.hInicio)}</b></span>
+          ${r.hFin ? `<span>Fin: <b>${formatHora(r.hFin)}</b></span>` : `<span style="color:#fbbf24; font-weight:bold;">En proceso...</span>`}
         </div>
+
+        ${r.tiempo ? `<div style="margin-top:4px; font-size:0.9rem; color:#34d399; text-align:right;">Duración: <b>${r.tiempo}</b></div>` : ''}
+
+        ${r.comentarios ? `<div style="margin-top:8px; background:#1e293b; padding:6px 10px; border-radius:6px; font-size:0.85rem; color:#94a3b8; border-left:3px solid #0284c7;">💬 ${r.comentarios}</div>` : ''}
       </div>`;
 
-    document.getElementById('tvPendientes').innerHTML = pend.length ? pend.map(cardHTML).join('') : '<p style="text-align:center; color:#94a3b8;">No hay Set Ups pendientes.</p>';
-    document.getElementById('tvTerminados').innerHTML = term.length ? term.map(cardHTML).join('') : '<p style="text-align:center; color:#94a3b8;">Aún no hay Set Ups terminados.</p>';
+    document.getElementById('tvPendientes').innerHTML = pend.length ? pend.map(r => cardHTML(r, false)).join('') : '<p style="text-align:center; color:#64748b; margin-top:20px;">No hay Set Ups pendientes.</p>';
+    document.getElementById('tvTerminados').innerHTML = term.length ? term.map(r => cardHTML(r, true)).join('') : '<p style="text-align:center; color:#64748b; margin-top:20px;">Aún no hay Set Ups terminados.</p>';
   }
 
-  // --- CATALOGOS ADMIN Y USUARIOS ---
+  // ADMIN
   function renderAdminLists() {
     ['Maquinas','Operadores','Turnos','Marcas','Items','Tecnicos'].forEach(cat => {
       let el = document.getElementById(`listAdmin${cat}`);
@@ -613,7 +665,7 @@
     }
   }
 
-  function guardarUsuario() {
+  async function guardarUsuario() {
     let orig = document.getElementById('editUserOrig').value;
     let u = document.getElementById('addUserName').value.trim();
     let p = document.getElementById('addUserPass').value.trim();
@@ -628,14 +680,14 @@
     if(orig) {
       let idx = dbData.usuarios.findIndex(x => x.user === orig);
       if(idx !== -1) dbData.usuarios[idx] = { user: u, pass: p, permisos: permStr };
-      postData({ action: "EDIT_USER", origUser: orig, newUser: u, pass: p, permisos: permStr });
+      await postData({ action: "EDIT_USER", origUser: orig, newUser: u, pass: p, permisos: permStr });
     } else {
       if(dbData.usuarios.find(x => x.user === u)) return alert("Usuario ya existe");
       dbData.usuarios.push({ user: u, pass: p, permisos: permStr });
-      postData({ action: "ADD_USER", user: u, pass: p, permisos: permStr });
+      await postData({ action: "ADD_USER", user: u, pass: p, permisos: permStr });
     }
     cancelarEdicionUser();
-    renderDataLists();
+    syncData();
   }
 
   function editarUsuarioUI(user) {
@@ -664,35 +716,44 @@
     document.getElementById('btnCancelUser').style.display = 'none';
   }
 
-  function addCat(cat, inputId) {
+  async function addCat(cat, inputId) {
     let v = document.getElementById(inputId).value.trim(); if(!v) return;
     let key = cat.toLowerCase(); if(dbData[key]) dbData[key].push(v);
-    renderDataLists(); postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); document.getElementById(inputId).value = '';
+    renderDataLists(); 
+    await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); 
+    document.getElementById(inputId).value = '';
+    syncData();
   }
-  function delCat(cat, val) {
+
+  async function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       let key = cat.toLowerCase();
       if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
-      renderDataLists(); postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+      renderDataLists(); 
+      await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+      syncData();
     }
   }
-  function eliminarRegistro(tipo, id) {
+
+  async function eliminarRegistro(tipo, id) {
     if(confirm("¿Borrar este registro?")) {
       if(tipo === 'OP') dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id != id);
       else if(tipo === 'SOL') dbData.registrosSolubles = dbData.registrosSolubles.filter(x => x.id != id);
       else if(tipo === 'SETUP') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
-      postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
       renderHistoriales(); if(isAdmin) renderAdminHistorial();
+      await postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
+      syncData();
     }
   }
 
-  // --- CARGAR PARA EDITAR (Op, Sol, Setup) ---
+  // EDICION REGISTROS
   function cargarEdicionOp(id) {
     let r = dbData.registrosOperadores.find(x => x.id == id); if(!r) return; switchTab('op');
     document.getElementById('editOpId').value = r.id; document.getElementById('opMaquina').value = r.maquina; document.getElementById('opFecha').value = normalizeDateStr(r.fecha);
     document.getElementById('opTurno').value = r.col7; document.getElementById('opTitular').value = r.col4; document.getElementById('opCubre').value = r.col5;
     document.getElementById('opComentarios').value = r.col6 || ''; document.getElementById('btnSaveOp').textContent = "Actualizar Registro"; window.scrollTo({top: 0});
   }
+
   function cargarEdicionSol(id) {
     let r = dbData.registrosSolubles.find(x => x.id == id); if(!r) return; switchTab('sol');
     document.getElementById('editSolId').value = r.id; document.getElementById('solMaquina').value = r.maquina; document.getElementById('solFecha').value = normalizeDateStr(r.fecha);
@@ -700,15 +761,21 @@
     document.getElementById('solPhAnt').value = r.col6; document.getElementById('solPhNue').value = r.col7; document.getElementById('solMarca').value = r.col8;
     document.getElementById('solComentarios').value = r.col10 || ''; document.getElementById('btnSaveSol').textContent = "Actualizar Soluble"; window.scrollTo({top: 0});
   }
+
   function cargarEdicionSetup(id) {
     let r = dbData.registrosSetup.find(x => x.id == id); if(!r) return; switchTab('setup');
     document.getElementById('editSetupId').value = r.id; document.getElementById('setupFecha').value = normalizeDateStr(r.fecha); document.getElementById('setupMaquina').value = r.maquina;
-    document.getElementById('setupItem').value = r.item; document.getElementById('setupTecnico').value = r.tecnico; document.getElementById('setupHoraInicio').value = r.hInicio;
-    document.getElementById('setupHoraFin').value = r.hFin || ''; document.getElementById('setupTiempo').value = r.tiempo || ''; document.getElementById('setupComentarios').value = r.comentarios || '';
+    document.getElementById('setupItem').value = r.item; document.getElementById('setupTecnico').value = r.tecnico; document.getElementById('setupHoraInicio').value = formatHora(r.hInicio);
+    document.getElementById('setupHoraFin').value = formatHora(r.hFin) || ''; document.getElementById('setupTiempo').value = r.tiempo || ''; document.getElementById('setupComentarios').value = r.comentarios || '';
     document.getElementById('btnSaveSetup').textContent = "Actualizar Set Up"; window.scrollTo({top: 0});
   }
 
-  function postData(data) { fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); }
+  async function postData(data) { 
+    try {
+      await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); 
+    } catch(e) { console.error("Error posteando datos:", e); }
+  }
+
   document.addEventListener("DOMContentLoaded", () => { init(); document.querySelectorAll('input[type="date"]').forEach(i => i.value = getTodayString()); });
 </script>
 </body>
