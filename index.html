@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Planta </title>
+  <title>Control de Planta</title>
   <style>
-    :root { --primary: #0284c7; --admin: #0f172a; --bg: #f8fafc; --card: #ffffff; }
+    :root { --primary: #0284c7; --admin: #0f172a; --setup: #059669; --bg: #f8fafc; --card: #ffffff; }
     body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
-    .container { max-width: 650px; margin: 0 auto; }
+    .container { max-width: 750px; margin: 0 auto; }
+    .tv-container { max-width: 1200px; margin: 0 auto; }
     .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
     h2, h3 { margin-top: 0; color: var(--primary); }
+    h2.setup-title { color: var(--setup); }
     label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; }
     select, input, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; }
     
@@ -17,24 +19,43 @@
     button:active { opacity: 0.85; }
     .btn-full { width: 100%; margin-top: 15px; padding: 12px; }
     .btn-admin { background: var(--admin); }
+    .btn-setup { background: var(--setup); }
     .btn-danger { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     .btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    .btn-success { background: #10b981; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     
     .tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
     .tab-btn { background: #e2e8f0; color: #475569; padding: 10px 5px; border-radius: 6px; flex: 1; min-width: 90px; border: none; font-weight: bold; font-size: 0.85rem; text-align: center; }
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-btn.admin-active { background: var(--admin); color: white; }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
 
     .item-row { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 10px 12px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; border-left: 4px solid var(--primary); }
+    .row-setup-pend { border-left-color: #f59e0b; background: #fffbeb; }
+    .row-setup-term { border-left-color: #10b981; background: #ecfdf5; }
     .item-actions { display: flex; gap: 6px; }
     .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.85rem; font-weight: bold; }
     .filter-box { background: #e0f2fe; padding: 12px; border-radius: 8px; margin-top: 15px; margin-bottom: 10px; }
+    
+    .chk-group { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+    .chk-group label { margin-top: 0; font-weight: normal; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
+    .chk-group input { width: auto; margin: 0; }
+
+    /* TV Dashboard Styles */
+    .tv-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .tv-panel { padding: 15px; border-radius: 12px; border: 2px solid; }
+    .tv-panel h2 { text-align: center; margin-bottom: 15px; font-size: 1.5rem; }
+    .tv-pendientes { border-color: #f59e0b; background: #fffbeb; }
+    .tv-pendientes h2 { color: #d97706; }
+    .tv-terminados { border-color: #10b981; background: #ecfdf5; }
+    .tv-terminados h2 { color: #059669; }
+    .tv-card { background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); font-size: 1.1rem; }
+    @media(min-width: 768px){ .tv-grid { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
 
-<div class="container">
+<div id="mainContainer" class="container">
 
   <!-- LOGIN -->
   <div id="secLogin" class="card">
@@ -55,14 +76,16 @@
     </div>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('op')">Operadores</button>
-      <button type="button" class="tab-btn" onclick="switchTab('sol')">Solubles</button>
+      <button type="button" id="btnTabOp" class="tab-btn hidden" onclick="switchTab('op')">Operadores</button>
+      <button type="button" id="btnTabSol" class="tab-btn hidden" onclick="switchTab('sol')">Solubles</button>
+      <button type="button" id="btnTabSet" class="tab-btn hidden" onclick="switchTab('setup')">⚙️ Set Up</button>
       <button type="button" id="btnTabAdminHist" class="tab-btn hidden" onclick="switchTab('adminHist')">📊 Historial Gral</button>
       <button type="button" id="btnTabAdmin" class="tab-btn hidden" onclick="switchTab('admin')">⚙️ Catálogos</button>
+      <button type="button" id="btnTabTV" class="tab-btn hidden" onclick="switchTab('tv')">📺 Pizarra TV</button>
     </div>
 
     <!-- REGISTRO OPERADORES -->
-    <div id="formOperadores" class="card">
+    <div id="formOperadores" class="card hidden">
       <h2>Registro de Operadores</h2>
       <form onsubmit="guardarOperador(event)">
         <input type="hidden" id="editOpId">
@@ -80,7 +103,6 @@
         <textarea id="opComentarios" rows="2" placeholder="Opcional..."></textarea>
         <button type="submit" id="btnSaveOp" class="btn-full">Guardar Registro</button>
       </form>
-
       <div class="filter-box">
         <label style="margin-top:0; color:#0369a1;">🔍 Mis Registros por Fecha:</label>
         <input type="date" id="filterOpFecha" onchange="renderHistoriales()">
@@ -115,12 +137,51 @@
         <textarea id="solComentarios" rows="2" placeholder="Opcional..."></textarea>
         <button type="submit" id="btnSaveSol" class="btn-full">Capturar Soluble</button>
       </form>
-
       <div class="filter-box">
         <label style="margin-top:0; color:#0369a1;">🔍 Mis Registros por Fecha:</label>
         <input type="date" id="filterSolFecha" onchange="renderHistoriales()">
       </div>
       <div id="historialSol">Cargando...</div>
+    </div>
+
+    <!-- REGISTRO SET UP -->
+    <div id="formSetup" class="card hidden">
+      <h2 class="setup-title">Registro de Set Up</h2>
+      <form onsubmit="guardarSetup(event)">
+        <input type="hidden" id="editSetupId">
+        <label>Fecha del Registro</label>
+        <input type="date" id="setupFecha" required>
+        <label>Máquina</label>
+        <input list="listMaquinas" id="setupMaquina" required placeholder="Selecciona máquina...">
+        <label>Ítem</label>
+        <input list="listItems" id="setupItem" required placeholder="Selecciona o busca ítem...">
+        <label>Técnico</label>
+        <input list="listTecnicos" id="setupTecnico" required placeholder="Selecciona técnico...">
+        
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <div style="flex:1;">
+            <label style="margin-top:0;">Hora Inicio (24h)</label>
+            <input type="time" id="setupHoraInicio" required onchange="calcularTiempoSetup()">
+          </div>
+          <div style="flex:1;">
+            <label style="margin-top:0;">Hora Fin (Opcional)</label>
+            <input type="time" id="setupHoraFin" onchange="calcularTiempoSetup()">
+          </div>
+        </div>
+        <label>Tiempo Transcurrido (Auto)</label>
+        <input type="text" id="setupTiempo" readonly placeholder="Se calcula automáticamente" style="background:#f1f5f9; color:#64748b;">
+        
+        <label>Comentarios</label>
+        <textarea id="setupComentarios" rows="2" placeholder="Opcional..."></textarea>
+        
+        <button type="submit" id="btnSaveSetup" class="btn-full btn-setup">Guardar Set Up</button>
+      </form>
+
+      <div class="filter-box" style="background:#d1fae5;">
+        <label style="margin-top:0; color:#047857;">🔍 Mis Set Ups por Fecha:</label>
+        <input type="date" id="filterSetupFecha" onchange="renderHistoriales()">
+      </div>
+      <div id="historialSetup">Cargando...</div>
     </div>
 
     <!-- HISTORIAL GENERAL (SOLO ADMIN) -->
@@ -129,12 +190,14 @@
       <div class="filter-box" style="background:#f1f5f9;">
         <label style="margin-top:0;">1. Seleccionar Fecha:</label>
         <input type="date" id="adminFilterFecha" onchange="renderAdminHistorial()">
-        
         <label style="margin-top:10px;">2. Filtrar por Supervisor:</label>
         <select id="adminFilterUser" onchange="renderAdminHistorial()">
           <option value="ALL">-- Todos los Supervisores --</option>
         </select>
       </div>
+
+      <h3 style="margin-top:20px;">Registros Set Up</h3>
+      <div id="adminHistSetup">Seleccione filtros...</div>
 
       <h3 style="margin-top:20px;">Registros de Operadores</h3>
       <div id="adminHistOp">Seleccione filtros...</div>
@@ -147,89 +210,108 @@
     <div id="panelAdmin" class="card hidden">
       <h2 style="color: var(--admin)">Gestión de Catálogos (Admin)</h2>
       
-      <h3>Máquinas</h3>
-      <div style="display:flex; gap:5px;">
-        <input type="text" id="addMaq" placeholder="Ej: CM26">
-        <button class="btn-admin" onclick="addCat('Maquinas', 'addMaq')" style="width:120px;">Agregar</button>
+      <!-- Usuarios -->
+      <div style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:20px;">
+        <h3 style="margin-top:0;">Usuarios / Supervisores</h3>
+        <input type="hidden" id="editUserOrig">
+        <input type="text" id="addUserName" placeholder="Usuario">
+        <input type="text" id="addUserPass" placeholder="Contraseña" style="margin-top:5px;">
+        <label>Permisos de Acceso:</label>
+        <div class="chk-group">
+          <label><input type="checkbox" id="permOp" checked> Operadores</label>
+          <label><input type="checkbox" id="permSol" checked> Solubles</label>
+          <label><input type="checkbox" id="permSet" checked> Set Up</label>
+        </div>
+        <button class="btn-admin btn-full" id="btnSaveUser" onclick="guardarUsuario()">Crear/Actualizar Usuario</button>
+        <button class="btn-full" id="btnCancelUser" onclick="cancelarEdicionUser()" style="display:none; background:#94a3b8;">Cancelar Edición</button>
+        <div id="listAdminUsuarios" style="margin-top:15px;"></div>
       </div>
-      <div id="listAdminMaquinas"></div>
 
+      <h3>Máquinas</h3>
+      <div style="display:flex; gap:5px;"><input type="text" id="addMaq" placeholder="Ej: CM26"><button class="btn-admin" onclick="addCat('Maquinas', 'addMaq')" style="width:120px;">Agregar</button></div>
+      <div id="listAdminMaquinas"></div>
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+      <h3>Ítems (Set Up)</h3>
+      <div style="display:flex; gap:5px;"><input type="text" id="addItem" placeholder="Ej: Molde A"><button class="btn-admin" onclick="addCat('Items', 'addItem')" style="width:120px;">Agregar</button></div>
+      <div id="listAdminItems"></div>
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+      <h3>Técnicos (Set Up)</h3>
+      <div style="display:flex; gap:5px;"><input type="text" id="addTecnico" placeholder="Nombre Técnico"><button class="btn-admin" onclick="addCat('Tecnicos', 'addTecnico')" style="width:120px;">Agregar</button></div>
+      <div id="listAdminTecnicos"></div>
       <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
 
       <h3>Operadores</h3>
-      <div style="display:flex; gap:5px;">
-        <input type="text" id="addOp" placeholder="Nombre completo">
-        <button class="btn-admin" onclick="addCat('Operadores', 'addOp')" style="width:120px;">Agregar</button>
-      </div>
+      <div style="display:flex; gap:5px;"><input type="text" id="addOp" placeholder="Nombre completo"><button class="btn-admin" onclick="addCat('Operadores', 'addOp')" style="width:120px;">Agregar</button></div>
       <div id="listAdminOperadores"></div>
-
       <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
 
       <h3>Turnos</h3>
-      <div style="display:flex; gap:5px;">
-        <input type="text" id="addTurno" placeholder="Ej: Día (7AM-7PM)">
-        <button class="btn-admin" onclick="addCat('Turnos', 'addTurno')" style="width:120px;">Agregar</button>
-      </div>
+      <div style="display:flex; gap:5px;"><input type="text" id="addTurno" placeholder="Ej: Día (7AM-7PM)"><button class="btn-admin" onclick="addCat('Turnos', 'addTurno')" style="width:120px;">Agregar</button></div>
       <div id="listAdminTurnos"></div>
-
       <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
 
       <h3>Marcas de Soluble</h3>
-      <div style="display:flex; gap:5px;">
-        <input type="text" id="addMarca" placeholder="Ej: Castrol">
-        <button class="btn-admin" onclick="addCat('Marcas', 'addMarca')" style="width:120px;">Agregar</button>
-      </div>
+      <div style="display:flex; gap:5px;"><input type="text" id="addMarca" placeholder="Ej: Castrol"><button class="btn-admin" onclick="addCat('Marcas', 'addMarca')" style="width:120px;">Agregar</button></div>
       <div id="listAdminMarcas"></div>
-
-      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
-
-      <h3>Usuarios / Supervisores</h3>
-      <input type="text" id="addUser" placeholder="Usuario">
-      <input type="text" id="addPass" placeholder="Contraseña" style="margin-top:5px;">
-      <button class="btn-admin btn-full" onclick="addUser()">Crear Usuario</button>
-      <div id="listAdminUsuarios"></div>
     </div>
   </div>
+</div>
 
+<!-- PIZARRA TV (OCUPA TODA LA PANTALLA) -->
+<div id="panelTV" class="tv-container hidden">
+  <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; color:white; padding:15px 20px; border-radius:12px; margin-bottom:20px;">
+    <h1 style="margin:0;">📺 Monitor de Set Ups</h1>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <input type="date" id="tvFilterFecha" onchange="renderTV()" style="margin:0; width:150px; font-weight:bold;">
+      <button onclick="cerrarTV()" class="btn-danger">Cerrar Monitor</button>
+    </div>
+  </div>
+  
+  <div class="tv-grid">
+    <div class="tv-panel tv-pendientes">
+      <h2>⏳ Set Ups Pendientes</h2>
+      <div id="tvPendientes"></div>
+    </div>
+    <div class="tv-panel tv-terminados">
+      <h2>✅ Set Ups Terminados</h2>
+      <div id="tvTerminados"></div>
+    </div>
+  </div>
 </div>
 
 <datalist id="listMaquinas"></datalist>
 <datalist id="listOperadores"></datalist>
+<datalist id="listItems"></datalist>
+<datalist id="listTecnicos"></datalist>
 
 <script>
+  // NOTA IMPORTANTE: Debes actualizar el GAS (backend) para que administre 'registrosSetup', 'items', 'tecnicos' y la columna de permisos de usuarios.
   const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
-  let dbData = { maquinas:[], operadores:[], turnos:[], marcas:[], usuarios:[], registrosOperadores:[], registrosSolubles:[] };
+  let dbData = { maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[] };
   let currentUser = null, isAdmin = false;
 
   function getTodayString() {
-    let d = new Date();
-    let year = d.getFullYear();
-    let month = String(d.getMonth() + 1).padStart(2, '0');
-    let day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   function getSupervisorFromRecord(r) {
     if (!r) return "Desconocido";
     let u = r.usuario || r.user || r.supervisor || r.col11 || r.col10 || r.col9 || r.col8;
-    if (!u || u === 'N/A' || u === 'undefined') return "Desconocido";
-    return String(u).trim();
+    return u && u !== 'N/A' && u !== 'undefined' ? String(u).trim() : "Desconocido";
   }
 
   function normalizeDateStr(fechaRaw) {
     if (!fechaRaw) return "";
-    let str = String(fechaRaw).trim();
-    if (str.includes("T")) str = str.split("T")[0];
-    
+    let str = String(fechaRaw).trim().split("T")[0];
     if (str.includes('-')) {
       let parts = str.split('-');
-      if (parts[0].length === 4) return str;
-      return `${parts[2]}-${String(parts[1]).padStart(2,'0')}-${String(parts[0]).padStart(2,'0')}`;
-    } else if (str.includes('/')) {
+      return parts[0].length === 4 ? str : `${parts[2]}-${String(parts[1]).padStart(2,'0')}-${String(parts[0]).padStart(2,'0')}`;
+    }
+    if (str.includes('/')) {
       let parts = str.split('/');
-      if (parts[2].length === 4) {
-        return `${parts[2]}-${String(parts[1]).padStart(2,'0')}-${String(parts[0]).padStart(2,'0')}`;
-      }
+      if (parts[2].length === 4) return `${parts[2]}-${String(parts[1]).padStart(2,'0')}-${String(parts[0]).padStart(2,'0')}`;
     }
     return str;
   }
@@ -239,30 +321,19 @@
       let res = await fetch(API_URL);
       let data = await res.json();
       dbData = {
-        maquinas: data.maquinas || [],
-        operadores: data.operadores || [],
-        turnos: data.turnos || [],
-        marcas: data.marcas || [],
-        usuarios: data.usuarios || [],
-        registrosOperadores: data.registrosOperadores || [],
-        registrosSolubles: data.registrosSolubles || []
+        maquinas: data.maquinas || [], operadores: data.operadores || [], turnos: data.turnos || [], marcas: data.marcas || [],
+        items: data.items || [], tecnicos: data.tecnicos || [], usuarios: data.usuarios || [],
+        registrosOperadores: data.registrosOperadores || [], registrosSolubles: data.registrosSolubles || [], registrosSetup: data.registrosSetup || []
       };
       renderDataLists();
-    } catch(e) { console.error("Error al cargar los datos:", e); }
+    } catch(e) { console.error("Error al cargar datos:", e); }
   }
 
   function renderDataLists() {
-    let listM = document.getElementById('listMaquinas');
-    let listO = document.getElementById('listOperadores');
-    if(listM) {
-      listM.innerHTML = '';
-      dbData.maquinas.forEach(m => listM.innerHTML += `<option value="${m}">`);
-    }
-    if(listO) {
-      listO.innerHTML = '';
-      dbData.operadores.forEach(o => listO.innerHTML += `<option value="${o}">`);
-    }
-
+    fillDataList('listMaquinas', dbData.maquinas);
+    fillDataList('listOperadores', dbData.operadores);
+    fillDataList('listItems', dbData.items);
+    fillDataList('listTecnicos', dbData.tecnicos);
     fillSelect('opTurno', dbData.turnos);
     fillSelect('solTurno', dbData.turnos);
     fillSelect('solMarca', dbData.marcas);
@@ -277,11 +348,13 @@
     renderHistoriales();
   }
 
+  function fillDataList(id, arr) {
+    let el = document.getElementById(id);
+    if(el) { el.innerHTML = ''; (arr||[]).forEach(i => el.innerHTML += `<option value="${i}">`); }
+  }
   function fillSelect(id, list) {
     let s = document.getElementById(id);
-    if(!s) return;
-    s.innerHTML = '<option value="">Seleccione...</option>';
-    (list || []).forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`);
+    if(s) { s.innerHTML = '<option value="">Seleccione...</option>'; (list||[]).forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`); }
   }
 
   function iniciarSesion() {
@@ -291,12 +364,29 @@
 
     if(val) {
       currentUser = val.user; isAdmin = false;
+      let permisos = val.permisos ? val.permisos.toUpperCase() : "OP,SOL"; // Fallback por defecto
+      
       document.getElementById('userDisp').textContent = `Supervisor: ${currentUser}`;
       document.getElementById('secLogin').classList.add('hidden');
       document.getElementById('secApp').classList.remove('hidden');
+      
       document.getElementById('btnTabAdmin').classList.add('hidden');
       document.getElementById('btnTabAdminHist').classList.add('hidden');
-      switchTab('op');
+      document.getElementById('btnTabTV').classList.add('hidden');
+
+      let btnOp = document.getElementById('btnTabOp');
+      let btnSol = document.getElementById('btnTabSol');
+      let btnSet = document.getElementById('btnTabSet');
+      
+      btnOp.classList.toggle('hidden', !permisos.includes('OP'));
+      btnSol.classList.toggle('hidden', !permisos.includes('SOL'));
+      btnSet.classList.toggle('hidden', !permisos.includes('SET'));
+
+      if(permisos.includes('OP')) switchTab('op');
+      else if(permisos.includes('SOL')) switchTab('sol');
+      else if(permisos.includes('SET')) switchTab('setup');
+      else alert("No tienes permisos asignados.");
+      
     } else { alert("Usuario o contraseña incorrectos"); }
   }
 
@@ -307,8 +397,8 @@
       document.getElementById('userDisp').textContent = `Rol: Administrador`;
       document.getElementById('secLogin').classList.add('hidden');
       document.getElementById('secApp').classList.remove('hidden');
-      document.getElementById('btnTabAdmin').classList.remove('hidden');
-      document.getElementById('btnTabAdminHist').classList.remove('hidden');
+      
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('hidden'));
       switchTab('adminHist');
     } else if(p) alert("Clave inválida");
   }
@@ -316,373 +406,310 @@
   function cerrarSesion() { location.reload(); }
 
   function switchTab(t) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'admin-active'));
-    document.getElementById('formOperadores').classList.add('hidden');
-    document.getElementById('formSolubles').classList.add('hidden');
-    document.getElementById('panelAdminHistorial').classList.add('hidden');
-    document.getElementById('panelAdmin').classList.add('hidden');
-
-    if(t === 'op') {
-      document.querySelectorAll('.tab-btn')[0].classList.add('active');
-      document.getElementById('formOperadores').classList.remove('hidden');
-      renderHistoriales();
-    } else if(t === 'sol') {
-      document.querySelectorAll('.tab-btn')[1].classList.add('active');
-      document.getElementById('formSolubles').classList.remove('hidden');
-      renderHistoriales();
-    } else if(t === 'adminHist') {
-      document.getElementById('btnTabAdminHist').classList.add('admin-active');
-      document.getElementById('panelAdminHistorial').classList.remove('hidden');
-      renderAdminHistorial();
-    } else if(t === 'admin') {
-      document.getElementById('btnTabAdmin').classList.add('admin-active');
-      document.getElementById('panelAdmin').classList.remove('hidden');
-      renderAdminLists();
+    if(t === 'tv') {
+      document.getElementById('mainContainer').classList.add('hidden');
+      document.getElementById('panelTV').classList.remove('hidden');
+      document.body.style.background = "#0f172a";
+      document.getElementById('tvFilterFecha').value = getTodayString();
+      renderTV();
+      return;
     }
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'admin-active'));
+    ['formOperadores','formSolubles','formSetup','panelAdminHistorial','panelAdmin'].forEach(id => document.getElementById(id).classList.add('hidden'));
+
+    if(t === 'op') { document.getElementById('btnTabOp').classList.add('active'); document.getElementById('formOperadores').classList.remove('hidden'); }
+    else if(t === 'sol') { document.getElementById('btnTabSol').classList.add('active'); document.getElementById('formSolubles').classList.remove('hidden'); }
+    else if(t === 'setup') { document.getElementById('btnTabSet').classList.add('active'); document.getElementById('formSetup').classList.remove('hidden'); }
+    else if(t === 'adminHist') { document.getElementById('btnTabAdminHist').classList.add('admin-active'); document.getElementById('panelAdminHistorial').classList.remove('hidden'); renderAdminHistorial(); }
+    else if(t === 'admin') { document.getElementById('btnTabAdmin').classList.add('admin-active'); document.getElementById('panelAdmin').classList.remove('hidden'); renderAdminLists(); }
+    renderHistoriales();
   }
 
-  function guardarOperador(e) {
+  function cerrarTV() {
+    document.getElementById('panelTV').classList.add('hidden');
+    document.getElementById('mainContainer').classList.remove('hidden');
+    document.body.style.background = "var(--bg)";
+  }
+
+  // --- LOGICA DE SET UP ---
+  function calcularTiempoSetup() {
+    let ini = document.getElementById('setupHoraInicio').value;
+    let fin = document.getElementById('setupHoraFin').value;
+    let txt = document.getElementById('setupTiempo');
+    if(ini && fin) {
+      let d1 = new Date("2000-01-01T" + ini);
+      let d2 = new Date("2000-01-01T" + fin);
+      let diffMins = (d2 - d1) / 60000;
+      if(diffMins < 0) diffMins += (24 * 60);
+      txt.value = diffMins + " minutos";
+    } else { txt.value = ""; }
+  }
+
+  function guardarSetup(e) {
     e.preventDefault();
-    let id = document.getElementById('editOpId').value;
-    let fechaVal = document.getElementById('opFecha').value;
+    let id = document.getElementById('editSetupId').value;
+    let hFin = document.getElementById('setupHoraFin').value;
     let payload = {
-      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP",
-      id: id || ("ID_" + new Date().getTime()),
-      fecha: fechaVal,
-      hora: new Date().toLocaleTimeString(),
-      maquina: document.getElementById('opMaquina').value,
-      operador: document.getElementById('opTitular').value,
-      cubre: document.getElementById('opCubre').value || "Ninguno",
-      comentarios: document.getElementById('opComentarios').value,
-      turno: document.getElementById('opTurno').value,
+      action: id ? "EDIT_REGISTRO_SETUP" : "ADD_REGISTRO_SETUP",
+      id: id || ("SET_" + new Date().getTime()),
+      fecha: document.getElementById('setupFecha').value,
+      maquina: document.getElementById('setupMaquina').value,
+      item: document.getElementById('setupItem').value,
+      tecnico: document.getElementById('setupTecnico').value,
+      hInicio: document.getElementById('setupHoraInicio').value,
+      hFin: hFin,
+      tiempo: document.getElementById('setupTiempo').value,
+      estado: hFin ? "Terminado" : "Pendiente",
+      comentarios: document.getElementById('setupComentarios').value,
       usuario: currentUser
     };
 
     if(id) {
-      let idx = dbData.registrosOperadores.findIndex(x => x.id == id);
-      if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: payload.usuario };
+      let idx = dbData.registrosSetup.findIndex(x => x.id == id);
+      if(idx !== -1) dbData.registrosSetup[idx] = payload;
     } else {
-      dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
+      dbData.registrosSetup.unshift(payload);
     }
     
-    document.getElementById('filterOpFecha').value = fechaVal;
+    document.getElementById('filterSetupFecha').value = payload.fecha;
     renderHistoriales();
     postData(payload);
-
     e.target.reset();
-    document.getElementById('editOpId').value = '';
-    document.getElementById('btnSaveOp').textContent = "Guardar Registro";
-    document.getElementById('opFecha').value = getTodayString();
+    document.getElementById('editSetupId').value = '';
+    document.getElementById('btnSaveSetup').textContent = "Guardar Set Up";
+    document.getElementById('setupFecha').value = getTodayString();
+  }
+
+  // --- LOGICA OP & SOLUBLES ---
+  function guardarOperador(e) {
+    e.preventDefault();
+    let id = document.getElementById('editOpId').value;
+    let payload = {
+      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP", id: id || ("ID_" + new Date().getTime()),
+      fecha: document.getElementById('opFecha').value, hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('opMaquina').value, operador: document.getElementById('opTitular').value,
+      cubre: document.getElementById('opCubre').value || "Ninguno", comentarios: document.getElementById('opComentarios').value,
+      turno: document.getElementById('opTurno').value, usuario: currentUser
+    };
+    if(id) { let idx = dbData.registrosOperadores.findIndex(x => x.id == id); if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], fecha: payload.fecha, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno }; } 
+    else dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
+    document.getElementById('filterOpFecha').value = payload.fecha; renderHistoriales(); postData(payload);
+    e.target.reset(); document.getElementById('editOpId').value = ''; document.getElementById('btnSaveOp').textContent = "Guardar Registro"; document.getElementById('opFecha').value = getTodayString();
   }
 
   function guardarSoluble(e) {
     e.preventDefault();
     let id = document.getElementById('editSolId').value;
-    let fechaVal = document.getElementById('solFecha').value;
     let payload = {
-      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL",
-      id: id || ("ID_" + new Date().getTime()),
-      fecha: fechaVal,
-      hora: new Date().toLocaleTimeString(),
-      maquina: document.getElementById('solMaquina').value,
-      brixAnt: document.getElementById('solBrixAnt').value,
-      brixNue: document.getElementById('solBrixNue').value,
-      phAnt: document.getElementById('solPhAnt').value,
-      phNue: document.getElementById('solPhNue').value,
-      marca: document.getElementById('solMarca').value,
-      turno: document.getElementById('solTurno').value,
-      comentarios: document.getElementById('solComentarios').value,
-      usuario: currentUser
+      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL", id: id || ("ID_" + new Date().getTime()),
+      fecha: document.getElementById('solFecha').value, hora: new Date().toLocaleTimeString(),
+      maquina: document.getElementById('solMaquina').value, brixAnt: document.getElementById('solBrixAnt').value,
+      brixNue: document.getElementById('solBrixNue').value, phAnt: document.getElementById('solPhAnt').value, phNue: document.getElementById('solPhNue').value,
+      marca: document.getElementById('solMarca').value, turno: document.getElementById('solTurno').value, comentarios: document.getElementById('solComentarios').value, usuario: currentUser
     };
-
-    if(id) {
-      let idx = dbData.registrosSolubles.findIndex(x => x.id == id);
-      if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: payload.usuario };
-    } else {
-      dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: currentUser });
-    }
-
-    document.getElementById('filterSolFecha').value = fechaVal;
-    renderHistoriales();
-    postData(payload);
-
-    e.target.reset();
-    document.getElementById('editSolId').value = '';
-    document.getElementById('btnSaveSol').textContent = "Capturar Soluble";
-    document.getElementById('solFecha').value = getTodayString();
+    if(id) { let idx = dbData.registrosSolubles.findIndex(x => x.id == id); if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], fecha: payload.fecha, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios }; } 
+    else dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: currentUser });
+    document.getElementById('filterSolFecha').value = payload.fecha; renderHistoriales(); postData(payload);
+    e.target.reset(); document.getElementById('editSolId').value = ''; document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; document.getElementById('solFecha').value = getTodayString();
   }
 
   function renderHistoriales() {
-    let filterOpElem = document.getElementById('filterOpFecha');
-    let filterSolElem = document.getElementById('filterSolFecha');
-    let selOpFecha = filterOpElem ? filterOpElem.value : getTodayString();
-    let selSolFecha = filterSolElem ? filterSolElem.value : getTodayString();
+    let selOp = document.getElementById('filterOpFecha') ? document.getElementById('filterOpFecha').value : getTodayString();
+    let selSol = document.getElementById('filterSolFecha') ? document.getElementById('filterSolFecha').value : getTodayString();
+    let selSet = document.getElementById('filterSetupFecha') ? document.getElementById('filterSetupFecha').value : getTodayString();
 
+    const filtrar = (arr, fechaSel) => arr.filter(r => normalizeDateStr(r.fecha) === fechaSel && (isAdmin || getSupervisorFromRecord(r).toLowerCase() === currentUser.toLowerCase() || getSupervisorFromRecord(r) === "Desconocido"));
+
+    // Ops
     let divOp = document.getElementById('historialOp');
-    let divSol = document.getElementById('historialSol');
-    if(!divOp || !divSol) return;
-
-    divOp.innerHTML = ''; divSol.innerHTML = '';
-
-    let opFiltrados = dbData.registrosOperadores.filter(r => {
-      let matchFecha = normalizeDateStr(r.fecha) === selOpFecha;
-      let sup = getSupervisorFromRecord(r);
-      let matchUser = isAdmin || sup.toLowerCase() === String(currentUser).toLowerCase() || sup === "Desconocido";
-      return matchFecha && matchUser;
-    });
-
-    let solFiltrados = dbData.registrosSolubles.filter(r => {
-      let matchFecha = normalizeDateStr(r.fecha) === selSolFecha;
-      let sup = getSupervisorFromRecord(r);
-      let matchUser = isAdmin || sup.toLowerCase() === String(currentUser).toLowerCase() || sup === "Desconocido";
-      return matchFecha && matchUser;
-    });
-
-    if (opFiltrados.length === 0) {
-      divOp.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No tienes registros grabados para esta fecha.</p>`;
-    } else {
-      opFiltrados.forEach(r => {
-        divOp.innerHTML += `
-          <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-            <div style="width:100%;">
-              <b>Máquina: ${r.maquina}</b> | Turno: ${r.col7}<br>
-              <small><b>Titular:</b> ${r.col4} | <b>Cubre:</b> ${r.col5}</small><br>
-              <small style="color:#64748b;">${r.col6 ? 'Obs: '+r.col6+' | ' : ''}Hora: ${r.hora || ''}</small>
-            </div>
-            <div class="item-actions" style="margin-top:8px; align-self:flex-end;">
-              <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
-              <button class="btn-danger" onclick="eliminarRegistro('OPERADOR', '${r.id}')">🗑️ Borrar</button>
-            </div>
-          </div>`;
-      });
+    if(divOp) {
+      let fOp = filtrar(dbData.registrosOperadores, selOp);
+      divOp.innerHTML = fOp.length ? fOp.map(r => `
+        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+          <div style="width:100%;"><b>M: ${r.maquina}</b> | Turno: ${r.col7}<br><small><b>Titular:</b> ${r.col4} | <b>Cubre:</b> ${r.col5}</small><br><small style="color:#64748b;">${r.col6 ? 'Obs: '+r.col6 : ''}</small></div>
+          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('OP', '${r.id}')">🗑️</button></div>
+        </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
     }
 
-    if (solFiltrados.length === 0) {
-      divSol.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem; text-align:center;">No tienes registros grabados para esta fecha.</p>`;
-    } else {
-      solFiltrados.forEach(r => {
-        divSol.innerHTML += `
-          <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-            <div style="width:100%;">
-              <b>Máquina: ${r.maquina}</b> | Turno: ${r.col9}<br>
-              <small><b>Brix:</b> ${r.col4} ➔ ${r.col5} | <b>pH:</b> ${r.col6} ➔ ${r.col7}</small><br>
-              <small style="color:#64748b;">Marca: ${r.col8} | ${r.col10 ? 'Obs: '+r.col10+' | ' : ''}Hora: ${r.hora || ''}</small>
-            </div>
-            <div class="item-actions" style="margin-top:8px; align-self:flex-end;">
-              <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
-              <button class="btn-danger" onclick="eliminarRegistro('SOLUBLE', '${r.id}')">🗑️ Borrar</button>
-            </div>
-          </div>`;
-      });
+    // Sols
+    let divSol = document.getElementById('historialSol');
+    if(divSol) {
+      let fSol = filtrar(dbData.registrosSolubles, selSol);
+      divSol.innerHTML = fSol.length ? fSol.map(r => `
+        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+          <div style="width:100%;"><b>M: ${r.maquina}</b> | Turno: ${r.col9}<br><small><b>Brix:</b> ${r.col4}➔${r.col5} | <b>pH:</b> ${r.col6}➔${r.col7}</small><br><small style="color:#64748b;">${r.col10 ? 'Obs: '+r.col10 : ''}</small></div>
+          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SOL', '${r.id}')">🗑️</button></div>
+        </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
+    }
+
+    // Setups
+    let divSet = document.getElementById('historialSetup');
+    if(divSet) {
+      let fSet = filtrar(dbData.registrosSetup, selSet);
+      divSet.innerHTML = fSet.length ? fSet.map(r => `
+        <div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}" style="flex-direction:column; align-items:flex-start;">
+          <div style="width:100%;">
+            <b>${r.maquina} - ${r.item}</b> <span style="font-size:0.75rem; padding:2px 6px; border-radius:4px; background:${r.estado==='Terminado'?'#10b981':'#f59e0b'}; color:white;">${r.estado}</span><br>
+            <small><b>Tec:</b> ${r.tecnico} | <b>De:</b> ${r.hInicio} <b>A:</b> ${r.hFin || '--:--'} (${r.tiempo || 'N/A'})</small><br>
+            <small style="color:#64748b;">${r.comentarios ? 'Obs: '+r.comentarios : ''}</small>
+          </div>
+          <div class="item-actions" style="margin-top:8px; align-self:flex-end;"><button class="btn-edit" onclick="cargarEdicionSetup('${r.id}')">✏️ Editar</button><button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>
+        </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
     }
   }
 
   function renderAdminHistorial() {
-    let fechaElem = document.getElementById('adminFilterFecha');
-    let userElem = document.getElementById('adminFilterUser');
-    let fecha = fechaElem ? fechaElem.value : getTodayString();
-    let userSel = userElem ? userElem.value : "ALL";
+    let fecha = document.getElementById('adminFilterFecha') ? document.getElementById('adminFilterFecha').value : getTodayString();
+    let userSel = document.getElementById('adminFilterUser') ? document.getElementById('adminFilterUser').value : "ALL";
+    const filtrar = arr => arr.filter(r => normalizeDateStr(r.fecha) === fecha && (userSel === "ALL" || getSupervisorFromRecord(r).toLowerCase() === userSel.toLowerCase()));
 
-    let divOp = document.getElementById('adminHistOp');
-    let divSol = document.getElementById('adminHistSol');
-    if(!divOp || !divSol) return;
-
-    divOp.innerHTML = ''; divSol.innerHTML = '';
-
-    let opFiltrados = dbData.registrosOperadores.filter(r => {
-      let matchFecha = normalizeDateStr(r.fecha) === fecha;
-      let sup = getSupervisorFromRecord(r);
-      let matchUser = userSel === "ALL" || sup.toLowerCase() === userSel.toLowerCase();
-      return matchFecha && matchUser;
-    });
-
-    let solFiltrados = dbData.registrosSolubles.filter(r => {
-      let matchFecha = normalizeDateStr(r.fecha) === fecha;
-      let sup = getSupervisorFromRecord(r);
-      let matchUser = userSel === "ALL" || sup.toLowerCase() === userSel.toLowerCase();
-      return matchFecha && matchUser;
-    });
-
-    if (opFiltrados.length === 0) {
-      divOp.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem;">No hay registros de operadores para esta fecha / filtro.</p>`;
-    } else {
-      opFiltrados.forEach(r => {
-        let supName = getSupervisorFromRecord(r);
-        divOp.innerHTML += `
-          <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-            <div style="width:100%;">
-              <span style="background:#0f172a; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem;">Supervisor: ${supName}</span>
-              <b style="margin-left:5px;">${r.maquina}</b> | Turno: ${r.col7}<br>
-              <small><b>Titular:</b> ${r.col4} | <b>Cubre:</b> ${r.col5}</small><br>
-              <small style="color:#64748b;">${r.col6 ? 'Obs: '+r.col6+' | ' : ''}Hora: ${r.hora || ''}</small>
-            </div>
-            <div class="item-actions" style="margin-top:8px; align-self:flex-end;">
-              <button class="btn-edit" onclick="cargarEdicionOp('${r.id}')">✏️ Editar</button>
-              <button class="btn-danger" onclick="eliminarRegistro('OPERADOR', '${r.id}')">🗑️ Borrar</button>
-            </div>
-          </div>`;
-      });
-    }
-
-    if (solFiltrados.length === 0) {
-      divSol.innerHTML = `<p style="color:#94a3b8; font-size:0.85rem;">No hay registros de solubles para esta fecha / filtro.</p>`;
-    } else {
-      solFiltrados.forEach(r => {
-        let supName = getSupervisorFromRecord(r);
-        divSol.innerHTML += `
-          <div class="item-row" style="flex-direction:column; align-items:flex-start;">
-            <div style="width:100%;">
-              <span style="background:#0f172a; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem;">Supervisor: ${supName}</span>
-              <b style="margin-left:5px;">${r.maquina}</b> | Turno: ${r.col9}<br>
-              <small><b>Brix:</b> ${r.col4} ➔ ${r.col5} | <b>pH:</b> ${r.col6} ➔ ${r.col7}</small><br>
-              <small style="color:#64748b;">Marca: ${r.col8} | ${r.col10 ? 'Obs: '+r.col10+' | ' : ''}Hora: ${r.hora || ''}</small>
-            </div>
-            <div class="item-actions" style="margin-top:8px; align-self:flex-end;">
-              <button class="btn-edit" onclick="cargarEdicionSol('${r.id}')">✏️ Editar</button>
-              <button class="btn-danger" onclick="eliminarRegistro('SOLUBLE', '${r.id}')">🗑️ Borrar</button>
-            </div>
-          </div>`;
-      });
-    }
+    document.getElementById('adminHistOp').innerHTML = filtrar(dbData.registrosOperadores).map(r => `<div class="item-row"><b>${r.maquina}</b> | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('OP', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
+    document.getElementById('adminHistSol').innerHTML = filtrar(dbData.registrosSolubles).map(r => `<div class="item-row"><b>${r.maquina}</b> | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SOL', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
+    document.getElementById('adminHistSetup').innerHTML = filtrar(dbData.registrosSetup).map(r => `<div class="item-row ${r.estado === 'Terminado' ? 'row-setup-term' : 'row-setup-pend'}"><b>${r.maquina}</b> - ${r.item} (${r.estado}) | Sup: ${getSupervisorFromRecord(r)} <button class="btn-danger" onclick="eliminarRegistro('SETUP', '${r.id}')">🗑️</button></div>`).join('') || 'Sin registros';
   }
 
-  function eliminarRegistro(tipo, id) {
-    if(confirm("¿Estás seguro de borrar este registro?")) {
-      if(tipo === 'OPERADOR') {
-        dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id != id);
-        postData({ action: 'DELETE_REGISTRO_OP', id: id });
-      } else {
-        dbData.registrosSolubles = dbData.registrosSolubles.filter(x => x.id != id);
-        postData({ action: 'DELETE_REGISTRO_SOL', id: id });
-      }
-      renderHistoriales();
-      if(isAdmin) renderAdminHistorial();
-    }
+  function renderTV() {
+    let fecha = document.getElementById('tvFilterFecha').value;
+    let setupsDia = dbData.registrosSetup.filter(r => normalizeDateStr(r.fecha) === fecha);
+    
+    let pend = setupsDia.filter(r => r.estado !== 'Terminado');
+    let term = setupsDia.filter(r => r.estado === 'Terminado');
+
+    const cardHTML = r => `
+      <div class="tv-card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <strong>🏭 ${r.maquina}</strong> 
+          <span style="color:#64748b;">Sup: ${getSupervisorFromRecord(r)}</span>
+        </div>
+        <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${r.item}</div>
+        <div style="margin-top:5px; color:#334155;">🔧 Técnico: ${r.tecnico}</div>
+        <div style="margin-top:5px; display:flex; justify-content:space-between; font-size:0.95rem;">
+          <span>⏱️ Inicio: <b>${r.hInicio}</b></span>
+          ${r.hFin ? `<span>Fin: <b>${r.hFin}</b> (${r.tiempo})</span>` : `<span style="color:#f59e0b; font-weight:bold;">En proceso...</span>`}
+        </div>
+      </div>`;
+
+    document.getElementById('tvPendientes').innerHTML = pend.length ? pend.map(cardHTML).join('') : '<p style="text-align:center; color:#94a3b8;">No hay Set Ups pendientes.</p>';
+    document.getElementById('tvTerminados').innerHTML = term.length ? term.map(cardHTML).join('') : '<p style="text-align:center; color:#94a3b8;">Aún no hay Set Ups terminados.</p>';
   }
 
-  function cargarEdicionOp(id) {
-    let r = dbData.registrosOperadores.find(x => x.id == id);
-    if(!r) return;
-    switchTab('op');
-    document.getElementById('editOpId').value = r.id;
-    document.getElementById('opMaquina').value = r.maquina;
-    document.getElementById('opFecha').value = normalizeDateStr(r.fecha);
-    document.getElementById('opTurno').value = r.col7;
-    document.getElementById('opTitular').value = r.col4;
-    document.getElementById('opCubre').value = r.col5;
-    document.getElementById('opComentarios').value = r.col6 || '';
-    document.getElementById('btnSaveOp').textContent = "Actualizar Registro";
-    window.scrollTo({top: 0, behavior: 'smooth'});
-  }
-
-  function cargarEdicionSol(id) {
-    let r = dbData.registrosSolubles.find(x => x.id == id);
-    if(!r) return;
-    switchTab('sol');
-    document.getElementById('editSolId').value = r.id;
-    document.getElementById('solMaquina').value = r.maquina;
-    document.getElementById('solFecha').value = normalizeDateStr(r.fecha);
-    document.getElementById('solTurno').value = r.col9;
-    document.getElementById('solBrixAnt').value = r.col4;
-    document.getElementById('solBrixNue').value = r.col5;
-    document.getElementById('solPhAnt').value = r.col6;
-    document.getElementById('solPhNue').value = r.col7;
-    document.getElementById('solMarca').value = r.col8;
-    document.getElementById('solComentarios').value = r.col10 || '';
-    document.getElementById('btnSaveSol').textContent = "Actualizar Soluble";
-    window.scrollTo({top: 0, behavior: 'smooth'});
-  }
-
+  // --- CATALOGOS ADMIN Y USUARIOS ---
   function renderAdminLists() {
-    renderSubList('listAdminMaquinas', dbData.maquinas, 'Maquinas');
-    renderSubList('listAdminOperadores', dbData.operadores, 'Operadores');
-    renderSubList('listAdminTurnos', dbData.turnos, 'Turnos');
-    renderSubList('listAdminMarcas', dbData.marcas, 'Marcas');
+    ['Maquinas','Operadores','Turnos','Marcas','Items','Tecnicos'].forEach(cat => {
+      let el = document.getElementById(`listAdmin${cat}`);
+      if(el) el.innerHTML = (dbData[cat.toLowerCase()]||[]).map(i => `<div class="item-row"><span>${i}</span><div class="item-actions"><button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button></div></div>`).join('');
+    });
     
     let uDiv = document.getElementById('listAdminUsuarios');
     if(uDiv) {
-      uDiv.innerHTML = '';
-      dbData.usuarios.forEach(u => {
-        uDiv.innerHTML += `
-          <div class="item-row">
-            <span><b>${u.user}</b></span>
-            <div class="item-actions">
-              <button class="btn-danger" onclick="delCat('Usuarios', '${u.user}')">🗑️ Borrar</button>
-            </div>
-          </div>`;
-      });
+      uDiv.innerHTML = dbData.usuarios.map(u => `
+        <div class="item-row" style="flex-direction:column; align-items:flex-start;">
+          <div style="width:100%; display:flex; justify-content:space-between;">
+            <b>${u.user}</b>
+            <div class="item-actions"><button class="btn-edit" onclick="editarUsuarioUI('${u.user}')">✏️ Editar</button><button class="btn-danger" onclick="delCat('Usuarios', '${u.user}')">🗑️</button></div>
+          </div>
+          <small style="color:#64748b;">Permisos: ${u.permisos || 'Ninguno'}</small>
+        </div>`).join('');
     }
   }
 
-  function renderSubList(elemId, arr, cat) {
-    let d = document.getElementById(elemId);
-    if(!d) return;
-    d.innerHTML = '';
-    (arr || []).forEach(i => {
-      d.innerHTML += `
-        <div class="item-row">
-          <span>${i}</span>
-          <div class="item-actions">
-            <button class="btn-edit" onclick="editCat('${cat}', '${i}')">✏️</button>
-            <button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button>
-          </div>
-        </div>`;
-    });
+  function guardarUsuario() {
+    let orig = document.getElementById('editUserOrig').value;
+    let u = document.getElementById('addUserName').value.trim();
+    let p = document.getElementById('addUserPass').value.trim();
+    if(!u || !p) return alert("Usuario y contraseña requeridos");
+    
+    let perms = [];
+    if(document.getElementById('permOp').checked) perms.push('OP');
+    if(document.getElementById('permSol').checked) perms.push('SOL');
+    if(document.getElementById('permSet').checked) perms.push('SET');
+    let permStr = perms.join(',');
+
+    if(orig) {
+      let idx = dbData.usuarios.findIndex(x => x.user === orig);
+      if(idx !== -1) dbData.usuarios[idx] = { user: u, pass: p, permisos: permStr };
+      postData({ action: "EDIT_USER", origUser: orig, newUser: u, pass: p, permisos: permStr });
+    } else {
+      if(dbData.usuarios.find(x => x.user === u)) return alert("Usuario ya existe");
+      dbData.usuarios.push({ user: u, pass: p, permisos: permStr });
+      postData({ action: "ADD_USER", user: u, pass: p, permisos: permStr });
+    }
+    cancelarEdicionUser();
+    renderDataLists();
+  }
+
+  function editarUsuarioUI(user) {
+    let u = dbData.usuarios.find(x => x.user === user);
+    if(!u) return;
+    document.getElementById('editUserOrig').value = u.user;
+    document.getElementById('addUserName').value = u.user;
+    document.getElementById('addUserPass').value = u.pass;
+    let p = u.permisos || "";
+    document.getElementById('permOp').checked = p.includes('OP');
+    document.getElementById('permSol').checked = p.includes('SOL');
+    document.getElementById('permSet').checked = p.includes('SET');
+    document.getElementById('btnSaveUser').textContent = "Actualizar Usuario";
+    document.getElementById('btnCancelUser').style.display = 'block';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function cancelarEdicionUser() {
+    document.getElementById('editUserOrig').value = "";
+    document.getElementById('addUserName').value = "";
+    document.getElementById('addUserPass').value = "";
+    document.getElementById('permOp').checked = true;
+    document.getElementById('permSol').checked = true;
+    document.getElementById('permSet').checked = true;
+    document.getElementById('btnSaveUser').textContent = "Crear/Actualizar Usuario";
+    document.getElementById('btnCancelUser').style.display = 'none';
   }
 
   function addCat(cat, inputId) {
-    let v = document.getElementById(inputId).value.trim();
-    if(!v) return;
-    let key = cat.toLowerCase();
-    if(dbData[key]) dbData[key].push(v);
-    renderDataLists();
-    postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v });
-    document.getElementById(inputId).value = '';
+    let v = document.getElementById(inputId).value.trim(); if(!v) return;
+    let key = cat.toLowerCase(); if(dbData[key]) dbData[key].push(v);
+    renderDataLists(); postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); document.getElementById(inputId).value = '';
   }
-
   function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       let key = cat.toLowerCase();
-      if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val);
-      else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
-      renderDataLists();
-      postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+      if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
+      renderDataLists(); postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+    }
+  }
+  function eliminarRegistro(tipo, id) {
+    if(confirm("¿Borrar este registro?")) {
+      if(tipo === 'OP') dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id != id);
+      else if(tipo === 'SOL') dbData.registrosSolubles = dbData.registrosSolubles.filter(x => x.id != id);
+      else if(tipo === 'SETUP') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
+      postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
+      renderHistoriales(); if(isAdmin) renderAdminHistorial();
     }
   }
 
-  function editCat(cat, val) {
-    let n = prompt("Nuevo nombre para:", val);
-    if(n && n.trim() !== "" && n !== val) {
-      let key = cat.toLowerCase();
-      if(key in dbData) {
-        let idx = dbData[key].indexOf(val);
-        if(idx !== -1) dbData[key][idx] = n.trim();
-      }
-      renderDataLists();
-      postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: val, newVal1: n.trim() });
-    }
+  // --- CARGAR PARA EDITAR (Op, Sol, Setup) ---
+  function cargarEdicionOp(id) {
+    let r = dbData.registrosOperadores.find(x => x.id == id); if(!r) return; switchTab('op');
+    document.getElementById('editOpId').value = r.id; document.getElementById('opMaquina').value = r.maquina; document.getElementById('opFecha').value = normalizeDateStr(r.fecha);
+    document.getElementById('opTurno').value = r.col7; document.getElementById('opTitular').value = r.col4; document.getElementById('opCubre').value = r.col5;
+    document.getElementById('opComentarios').value = r.col6 || ''; document.getElementById('btnSaveOp').textContent = "Actualizar Registro"; window.scrollTo({top: 0});
+  }
+  function cargarEdicionSol(id) {
+    let r = dbData.registrosSolubles.find(x => x.id == id); if(!r) return; switchTab('sol');
+    document.getElementById('editSolId').value = r.id; document.getElementById('solMaquina').value = r.maquina; document.getElementById('solFecha').value = normalizeDateStr(r.fecha);
+    document.getElementById('solTurno').value = r.col9; document.getElementById('solBrixAnt').value = r.col4; document.getElementById('solBrixNue').value = r.col5;
+    document.getElementById('solPhAnt').value = r.col6; document.getElementById('solPhNue').value = r.col7; document.getElementById('solMarca').value = r.col8;
+    document.getElementById('solComentarios').value = r.col10 || ''; document.getElementById('btnSaveSol').textContent = "Actualizar Soluble"; window.scrollTo({top: 0});
+  }
+  function cargarEdicionSetup(id) {
+    let r = dbData.registrosSetup.find(x => x.id == id); if(!r) return; switchTab('setup');
+    document.getElementById('editSetupId').value = r.id; document.getElementById('setupFecha').value = normalizeDateStr(r.fecha); document.getElementById('setupMaquina').value = r.maquina;
+    document.getElementById('setupItem').value = r.item; document.getElementById('setupTecnico').value = r.tecnico; document.getElementById('setupHoraInicio').value = r.hInicio;
+    document.getElementById('setupHoraFin').value = r.hFin || ''; document.getElementById('setupTiempo').value = r.tiempo || ''; document.getElementById('setupComentarios').value = r.comentarios || '';
+    document.getElementById('btnSaveSetup').textContent = "Actualizar Set Up"; window.scrollTo({top: 0});
   }
 
-  function addUser() {
-    let u = document.getElementById('addUser').value.trim();
-    let p = document.getElementById('addPass').value.trim();
-    if(!u || !p) return;
-    dbData.usuarios.push({ user: u, pass: p });
-    renderDataLists();
-    postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Usuarios", val1: u, val2: p });
-    document.getElementById('addUser').value = ''; document.getElementById('addPass').value = '';
-  }
-
-  function postData(data) {
-    fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    init();
-    let today = getTodayString();
-    document.querySelectorAll('input[type="date"]').forEach(i => i.value = today);
-  });
+  function postData(data) { fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); }
+  document.addEventListener("DOMContentLoaded", () => { init(); document.querySelectorAll('input[type="date"]').forEach(i => i.value = getTodayString()); });
 </script>
-
 </body>
 </html>
