@@ -40,7 +40,6 @@
     .chk-group label { margin-top: 0; font-weight: normal; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
     .chk-group input { width: auto; margin: 0; }
 
-    /* TV Dashboard Styles */
     .tv-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
     .tv-panel { padding: 15px; border-radius: 12px; border: 2px solid; }
     .tv-panel h2 { text-align: center; margin-bottom: 15px; font-size: 1.5rem; }
@@ -314,8 +313,8 @@
     }
     if(str.includes(" ")) {
       let parts = str.split(" ");
-      let timePart = parts[3] || parts[1];
-      if(timePart && timePart.includes(":")) {
+      let timePart = parts.find(p => p.includes(":"));
+      if(timePart) {
         let sub = timePart.split(":");
         return `${sub[0].padStart(2,'0')}:${sub[1].padStart(2,'0')}`;
       }
@@ -519,7 +518,7 @@
     document.getElementById('editSetupId').value = '';
     document.getElementById('btnSaveSetup').textContent = "Guardar Set Up";
     document.getElementById('setupFecha').value = getTodayString();
-    syncData();
+    setTimeout(syncData, 3000);
   }
 
   async function guardarOperador(e) {
@@ -536,7 +535,7 @@
     else dbData.registrosOperadores.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.operador, col5: payload.cubre, col6: payload.comentarios, col7: payload.turno, usuario: currentUser });
     document.getElementById('filterOpFecha').value = payload.fecha; renderHistoriales(); await postData(payload);
     e.target.reset(); document.getElementById('editOpId').value = ''; document.getElementById('btnSaveOp').textContent = "Guardar Registro"; document.getElementById('opFecha').value = getTodayString();
-    syncData();
+    setTimeout(syncData, 3000);
   }
 
   async function guardarSoluble(e) {
@@ -553,7 +552,7 @@
     else dbData.registrosSolubles.unshift({ id: payload.id, fecha: payload.fecha, hora: payload.hora, maquina: payload.maquina, col4: payload.brixAnt, col5: payload.brixNue, col6: payload.phAnt, col7: payload.phNue, col8: payload.marca, col9: payload.turno, col10: payload.comentarios, usuario: currentUser });
     document.getElementById('filterSolFecha').value = payload.fecha; renderHistoriales(); await postData(payload);
     e.target.reset(); document.getElementById('editSolId').value = ''; document.getElementById('btnSaveSol').textContent = "Capturar Soluble"; document.getElementById('solFecha').value = getTodayString();
-    syncData();
+    setTimeout(syncData, 3000);
   }
 
   function renderHistoriales() {
@@ -638,7 +637,6 @@
     document.getElementById('tvTerminados').innerHTML = term.length ? term.map(r => cardHTML(r, true)).join('') : '<p style="text-align:center; color:#64748b; margin-top:20px;">Aún no hay Set Ups terminados.</p>';
   }
 
-  // ADMIN - RENDERIZADO DE CATÁLOGOS CON BOTÓN EDICIÓN
   function renderAdminLists() {
     ['Maquinas','Operadores','Turnos','Marcas','Items','Tecnicos'].forEach(cat => {
       let el = document.getElementById(`listAdmin${cat}`);
@@ -675,7 +673,7 @@
     renderDataLists(); 
     document.getElementById(inputId).value = '';
     await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); 
-    syncData();
+    setTimeout(syncData, 3000);
   }
 
   async function editCat(cat, oldVal) {
@@ -689,7 +687,7 @@
       }
       renderDataLists();
       await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, newVal1: newVal });
-      syncData();
+      setTimeout(syncData, 3000);
     }
   }
 
@@ -699,7 +697,7 @@
       if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
       renderDataLists(); 
       await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
-      syncData();
+      setTimeout(syncData, 3000);
     }
   }
 
@@ -725,7 +723,7 @@
       await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Usuarios", val1: u, val2: p, val3: permStr });
     }
     cancelarEdicionUser();
-    syncData();
+    setTimeout(syncData, 3000);
   }
 
   function editarUsuarioUI(user) {
@@ -761,7 +759,7 @@
       else if(tipo === 'SET') dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id != id);
       renderHistoriales(); if(isAdmin) renderAdminHistorial();
       await postData({ action: `DELETE_REGISTRO_${tipo}`, id: id });
-      syncData();
+      setTimeout(syncData, 3000);
     }
   }
 
