@@ -302,7 +302,7 @@
     let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  // FORMATO 12 HORAS (AM/PM)
+  // FORMATO DE MOSTRADO 12 HORAS (AM/PM) PARA TARJETAS Y TABLAS
   function formatHora(h) {
     if(!h) return "";
     let str = String(h).trim();
@@ -332,6 +332,41 @@
     hInt = hInt ? hInt : 12;
 
     return `${String(hInt).padStart(2,'0')}:${minutes} ${ampm}`;
+  }
+
+  // FORMATO 24 HORAS (HH:mm) REQUERIDO POR <input type="time">
+  function formatTimeInput(h) {
+    if(!h) return "";
+    let str = String(h).trim();
+
+    if(/am|pm/i.test(str)) {
+      let isPM = /pm/i.test(str);
+      let match = str.match(/(\d{1,2}):(\d{2})/);
+      if(match) {
+        let hours = parseInt(match[1], 10);
+        let minutes = match[2];
+        if(isPM && hours < 12) hours += 12;
+        if(!isPM && hours === 12) hours = 0;
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
+      }
+    }
+
+    let timeStr = "";
+    if(str.includes("T")) {
+      timeStr = str.split("T")[1].split(":").slice(0, 2).join(":");
+    } else if(str.includes(":")) {
+      let parts = str.split(" ");
+      let timePart = parts.find(p => p.includes(":")) || str;
+      timeStr = timePart.split(":").slice(0, 2).join(":");
+    }
+
+    if(timeStr) {
+      let [hh, mm] = timeStr.split(":");
+      if(hh !== undefined && mm !== undefined) {
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      }
+    }
+    return "";
   }
 
   function getSupervisorFromRecord(r) {
@@ -493,7 +528,6 @@
     } else { txt.value = ""; }
   }
 
-  // GUARDAR SET UP (RESPUESTA INSTANTÁNEA)
   function guardarSetup(e) {
     e.preventDefault();
     let id = document.getElementById('editSetupId').value;
@@ -530,7 +564,6 @@
     postData(payload);
   }
 
-  // GUARDAR OPERADOR (LLAVES CORREGIDAS COL4-COL7 + RESPUESTA INSTANTÁNEA)
   function guardarOperador(e) {
     e.preventDefault();
     let id = document.getElementById('editOpId').value;
@@ -564,7 +597,6 @@
     postData(payload);
   }
 
-  // GUARDAR SOLUBLE (LLAVES CORREGIDAS COL4-COL10 + RESPUESTA INSTANTÁNEA)
   function guardarSoluble(e) {
     e.preventDefault();
     let id = document.getElementById('editSolId').value;
@@ -683,7 +715,6 @@
     document.getElementById('tvTerminados').innerHTML = term.length ? term.map(r => cardHTML(r, true)).join('') : '<p style="text-align:center; color:#64748b; margin-top:20px;">Aún no hay Set Ups terminados.</p>';
   }
 
-  // ADMIN - RENDERIZADO DE CATÁLOGOS CON BOTÓN EDICIÓN
   function renderAdminLists() {
     ['Maquinas','Operadores','Turnos','Marcas','Items','Tecnicos'].forEach(cat => {
       let el = document.getElementById(`listAdmin${cat}`);
@@ -825,12 +856,20 @@
     document.getElementById('solComentarios').value = r.col10 || ''; document.getElementById('btnSaveSol').textContent = "Actualizar Soluble"; window.scrollTo({top: 0});
   }
 
+  // CARGAR EDICIÓN DE SET UP USANDO FORMATTIMEINPUT
   function cargarEdicionSetup(id) {
     let r = dbData.registrosSetup.find(x => x.id == id); if(!r) return; switchTab('setup');
-    document.getElementById('editSetupId').value = r.id; document.getElementById('setupFecha').value = normalizeDateStr(r.fecha); document.getElementById('setupMaquina').value = r.maquina;
-    document.getElementById('setupItem').value = r.item; document.getElementById('setupTecnico').value = r.tecnico; document.getElementById('setupHoraInicio').value = formatHora(r.hInicio);
-    document.getElementById('setupHoraFin').value = formatHora(r.hFin) || ''; document.getElementById('setupTiempo').value = r.tiempo || ''; document.getElementById('setupComentarios').value = r.comentarios || '';
-    document.getElementById('btnSaveSetup').textContent = "Actualizar Set Up"; window.scrollTo({top: 0});
+    document.getElementById('editSetupId').value = r.id; 
+    document.getElementById('setupFecha').value = normalizeDateStr(r.fecha); 
+    document.getElementById('setupMaquina').value = r.maquina;
+    document.getElementById('setupItem').value = r.item; 
+    document.getElementById('setupTecnico').value = r.tecnico; 
+    document.getElementById('setupHoraInicio').value = formatTimeInput(r.hInicio);
+    document.getElementById('setupHoraFin').value = formatTimeInput(r.hFin); 
+    document.getElementById('setupTiempo').value = r.tiempo || ''; 
+    document.getElementById('setupComentarios').value = r.comentarios || '';
+    document.getElementById('btnSaveSetup').textContent = "Actualizar Set Up"; 
+    window.scrollTo({top: 0});
   }
 
   async function postData(data) { 
