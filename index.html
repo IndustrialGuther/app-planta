@@ -302,7 +302,6 @@
     let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  // PARSEADOR Y FORMATEADOR DE HORA
   function formatHora(h) {
     if(!h) return "";
     let str = String(h).trim();
@@ -453,7 +452,6 @@
       document.body.style.background = "#020617";
       document.getElementById('tvFilterFecha').value = getTodayString();
       renderTV();
-      // Auto actualiza el monitor cada 10 segundos
       tvInterval = setInterval(syncData, 10000);
       return;
     }
@@ -475,7 +473,6 @@
     document.body.style.background = "var(--bg)";
   }
 
-  // LOGICA SET UP
   function calcularTiempoSetup() {
     let ini = document.getElementById('setupHoraInicio').value;
     let fin = document.getElementById('setupHoraFin').value;
@@ -525,7 +522,6 @@
     syncData();
   }
 
-  // LOGICA OP & SOL
   async function guardarOperador(e) {
     e.preventDefault();
     let id = document.getElementById('editOpId').value;
@@ -567,7 +563,6 @@
 
     const filtrar = (arr, fechaSel) => arr.filter(r => normalizeDateStr(r.fecha) === fechaSel && (isAdmin || getSupervisorFromRecord(r).toLowerCase() === currentUser.toLowerCase() || getSupervisorFromRecord(r) === "Desconocido"));
 
-    // Ops
     let divOp = document.getElementById('historialOp');
     if(divOp) {
       let fOp = filtrar(dbData.registrosOperadores, selOp);
@@ -578,7 +573,6 @@
         </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
     }
 
-    // Sols
     let divSol = document.getElementById('historialSol');
     if(divSol) {
       let fSol = filtrar(dbData.registrosSolubles, selSol);
@@ -589,7 +583,6 @@
         </div>`).join('') : '<p style="text-align:center; color:#94a3b8;">Sin registros.</p>';
     }
 
-    // Setups
     let divSet = document.getElementById('historialSetup');
     if(divSet) {
       let fSet = filtrar(dbData.registrosSetup, selSet);
@@ -645,11 +638,20 @@
     document.getElementById('tvTerminados').innerHTML = term.length ? term.map(r => cardHTML(r, true)).join('') : '<p style="text-align:center; color:#64748b; margin-top:20px;">Aún no hay Set Ups terminados.</p>';
   }
 
-  // ADMIN
+  // ADMIN - RENDERIZADO DE CATÁLOGOS CON BOTÓN EDICIÓN
   function renderAdminLists() {
     ['Maquinas','Operadores','Turnos','Marcas','Items','Tecnicos'].forEach(cat => {
       let el = document.getElementById(`listAdmin${cat}`);
-      if(el) el.innerHTML = (dbData[cat.toLowerCase()]||[]).map(i => `<div class="item-row"><span>${i}</span><div class="item-actions"><button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button></div></div>`).join('');
+      if(el) {
+        el.innerHTML = (dbData[cat.toLowerCase()]||[]).map(i => `
+          <div class="item-row">
+            <span>${i}</span>
+            <div class="item-actions">
+              <button class="btn-edit" onclick="editCat('${cat}', '${i}')">✏️ Editar</button>
+              <button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button>
+            </div>
+          </div>`).join('');
+      }
     });
     
     let uDiv = document.getElementById('listAdminUsuarios');
@@ -662,6 +664,42 @@
           </div>
           <small style="color:#64748b;">Permisos: ${u.permisos || 'Ninguno'}</small>
         </div>`).join('');
+    }
+  }
+
+  async function addCat(cat, inputId) {
+    let v = document.getElementById(inputId).value.trim(); 
+    if(!v) return alert("Escribe un nombre válido");
+    let key = cat.toLowerCase(); 
+    if(dbData[key]) dbData[key].push(v);
+    renderDataLists(); 
+    document.getElementById(inputId).value = '';
+    await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); 
+    syncData();
+  }
+
+  async function editCat(cat, oldVal) {
+    let newVal = prompt(`Editar en ${cat}:`, oldVal);
+    if(newVal && newVal.trim() !== "" && newVal !== oldVal) {
+      newVal = newVal.trim();
+      let key = cat.toLowerCase();
+      if(dbData[key]) {
+        let idx = dbData[key].indexOf(oldVal);
+        if(idx !== -1) dbData[key][idx] = newVal;
+      }
+      renderDataLists();
+      await postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, val2: newVal });
+      syncData();
+    }
+  }
+
+  async function delCat(cat, val) {
+    if(confirm(`¿Eliminar ${val}?`)) {
+      let key = cat.toLowerCase();
+      if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
+      renderDataLists(); 
+      await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+      syncData();
     }
   }
 
@@ -716,25 +754,6 @@
     document.getElementById('btnCancelUser').style.display = 'none';
   }
 
-  async function addCat(cat, inputId) {
-    let v = document.getElementById(inputId).value.trim(); if(!v) return;
-    let key = cat.toLowerCase(); if(dbData[key]) dbData[key].push(v);
-    renderDataLists(); 
-    await postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v }); 
-    document.getElementById(inputId).value = '';
-    syncData();
-  }
-
-  async function delCat(cat, val) {
-    if(confirm(`¿Eliminar ${val}?`)) {
-      let key = cat.toLowerCase();
-      if(key === 'usuarios') dbData.usuarios = dbData.usuarios.filter(x => x.user !== val); else if(dbData[key]) dbData[key] = dbData[key].filter(x => x !== val);
-      renderDataLists(); 
-      await postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
-      syncData();
-    }
-  }
-
   async function eliminarRegistro(tipo, id) {
     if(confirm("¿Borrar este registro?")) {
       if(tipo === 'OP') dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id != id);
@@ -746,7 +765,6 @@
     }
   }
 
-  // EDICION REGISTROS
   function cargarEdicionOp(id) {
     let r = dbData.registrosOperadores.find(x => x.id == id); if(!r) return; switchTab('op');
     document.getElementById('editOpId').value = r.id; document.getElementById('opMaquina').value = r.maquina; document.getElementById('opFecha').value = normalizeDateStr(r.fecha);
