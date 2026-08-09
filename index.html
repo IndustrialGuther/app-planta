@@ -293,6 +293,11 @@
             <label>Frecuencia / Tono (Hz): <span id="lblSoundFreq">880 Hz</span></label>
             <input type="range" id="cfgSoundFreq" min="300" max="2500" step="10" value="880" oninput="document.getElementById('lblSoundFreq').textContent = this.value+' Hz'">
           </div>
+          <div>
+            <label>Velocidad / Ritmo del Pitido: <span id="lblSoundSpeed">300 ms</span></label>
+            <input type="range" id="cfgSoundSpeed" min="100" max="1000" step="50" value="300" oninput="document.getElementById('lblSoundSpeed').textContent = this.value+' ms'">
+            <small style="color:#64748b;">(Menor tiempo = pitido más rápido pi-pi-pi)</small>
+          </div>
           <div style="grid-column: 1 / -1;">
             <label>Dispositivo de Salida de Audio (Bocina):</label>
             <select id="cfgAudioDevice"><option value="">Cargando dispositivos...</option></select>
@@ -367,7 +372,7 @@
 
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
-  let dbData = { naves:[], maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[], alarmMinutes: 150, soundVol: 50, soundFreq: 880 };
+  let dbData = { naves:[], maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[], alarmMinutes: 150, soundVol: 50, soundFreq: 880, soundSpeed: 300 };
   let currentUser = null, isAdmin = false;
   let tvInterval = null;
   let isMuted = false;
@@ -459,23 +464,33 @@
       if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       let vol = (parseFloat(dbData.soundVol) || 50) / 100;
       let freq = parseFloat(dbData.soundFreq) || 880;
-
-      let osc = audioCtx.createOscillator();
-      let gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(vol * 0.3, audioCtx.currentTime);
-      
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
+      let speedMs = parseFloat(dbData.soundSpeed) || 300; // Intervalo de velocidad entre pitidos
 
       let selDev = document.getElementById('cfgAudioDevice');
       if(selDev && selDev.value && audioCtx.setSinkId) {
         audioCtx.setSinkId(selDev.value).catch(err => console.log(err));
       }
 
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.35);
+      // Emite una ráfaga de 3 pitidos ("pi-pi-pi") a la velocidad/ritmo configurado
+      let numBeeps = 3;
+      let durationSec = Math.min(0.15, (speedMs / 1000) * 0.5);
+
+      for (let i = 0; i < numBeeps; i++) {
+        let startTime = audioCtx.currentTime + (i * speedMs / 1000);
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(vol * 0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + durationSec);
+      }
     } catch(e) { console.log(e); }
   }
 
@@ -499,6 +514,12 @@
         let lblF = document.getElementById('lblSoundFreq');
         if(elF) elF.value = dbData.soundFreq;
         if(lblF) lblF.textContent = dbData.soundFreq + ' Hz';
+      }
+      if(dbData.soundSpeed) {
+        let elS = document.getElementById('cfgSoundSpeed');
+        let lblS = document.getElementById('lblSoundSpeed');
+        if(elS) elS.value = dbData.soundSpeed;
+        if(lblS) lblS.textContent = dbData.soundSpeed + ' ms';
       }
       renderDataLists();
       if(!document.getElementById('panelTV').classList.contains('hidden')) renderTV();
@@ -746,7 +767,8 @@
     if(est === 'Caida') {
       d.querySelector('.g-turno').classList.remove('hidden');
     } else if (est === 'Corriendo') {
-      ['g-turno','g-item','g-horas','g-operador','g-opCubre','g-piezas'].forEach(c => d.querySelector('.'+c).classList.remove('hidden'));
+      // CORREGIDO: Se incluye g-tiempo para calcular la duración también en 'Corriendo'
+      ['g-turno','g-item','g-horas','g-tiempo','g-operador','g-opCubre','g-piezas'].forEach(c => d.querySelector('.'+c).classList.remove('hidden'));
     } else if (est === 'Ajuste' || est === 'Set up') {
       ['g-turno','g-item','g-tecnico','g-horas','g-tiempo'].forEach(c => d.querySelector('.'+c).classList.remove('hidden'));
     }
@@ -843,7 +865,7 @@
     
     let filM = act.filter(r => normalizeDateStr(r.fecha) === fDateM && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
     
-    // FILTRADO ESTRICTO POR HORA (Ajuste, Corriendo, Setup, Caída)
+    // FILTRADO ESTRICTO POR HORA
     if(fTimeM) {
       let filterTimeNormalized = formatTimeInput(fTimeM);
       filM = filM.filter(r => {
@@ -865,7 +887,8 @@
           
           let det = `<small><b>Turno:</b> ${r.turno} | <b>Supervisor:</b> ${getSupervisor(r)}</small><br>`;
           if(st !== 'Caida') det += `<small><b>Item:</b> ${r.item} | <b>Ini:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${term ? formatHora(r.hFin) : '<i>Pendiente</i>'}</small><br>`;
-          if(st === 'Corriendo') det += `<small><b>Op:</b> ${r.operador} ${r.opCubre?`(Cubre:${r.opCubre})`:''} | <b>Plan:</b> ${r.piezasPlan||0} | <b>Real:</b> ${r.piezasReal||0} | <b>Delta (Falta):</b> ${r.piezasDelta||0}</small><br>`;
+          // CORREGIDO: Se muestra Duración en 'Corriendo' también
+          if(st === 'Corriendo') det += `<small><b>Op:</b> ${r.operador} ${r.opCubre?`(Cubre:${r.opCubre})`:''} | <b>Duración:</b> ${r.tiempo||'-'}<br><b>Plan:</b> ${r.piezasPlan||0} | <b>Real:</b> ${r.piezasReal||0} | <b>Delta (Falta):</b> ${r.piezasDelta||0}</small><br>`;
           if(st === 'Ajuste' || st === 'Set up') det += `<small><b>Tec:</b> ${r.tecnico} | <b>Duración:</b> ${r.tiempo||'-'}</small><br>`;
           if(r.fechaRegistro) det += `<small style="color:#64748b;">📅 <b>Reg:</b> ${r.fechaRegistro} ${r.fechaActualizacion?'| ✏️ <b>Act:</b> '+r.fechaActualizacion:''}</small><br>`;
           if(r.comentarios) det += `<small style="color:#64748b;"><i>${r.comentarios}</i></small>`;
@@ -899,9 +922,13 @@
       </div>`).join('') : '<p style="color:#94a3b8;">Sin registros de operadores.</p>';
     let divOp = document.getElementById('historialOp'); if(divOp) divOp.innerHTML = htmlOp;
 
-    // 3. Historial Solubles (Con Indicador de Hora de Registro)
+    // 3. Historial Solubles (CORREGIDO: Ordenado de CM1 arriba a CM25 abajo)
     let fDateSol = document.getElementById('filtroFechaSol') ? document.getElementById('filtroFechaSol').value : getTodayString();
     let filSol = (dbData.registrosSolubles||[]).filter(r => normalizeDateStr(r.fecha) === fDateSol && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
+    
+    // Ordenamiento por número de máquina
+    filSol.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true, sensitivity: 'base'}));
+
     let htmlSol = (filSol.length > 0) ? filSol.map(r => `
       <div class="item-row">
         <div>
@@ -1146,10 +1173,12 @@
   function guardarConfigSonido() {
     let vol = document.getElementById('cfgSoundVol').value;
     let freq = document.getElementById('cfgSoundFreq').value;
+    let speed = document.getElementById('cfgSoundSpeed').value;
     dbData.soundVol = vol;
     dbData.soundFreq = freq;
+    dbData.soundSpeed = speed;
     alert("Ajustes de sonido guardados con éxito.");
-    postData({ action: "SAVE_SOUND_CONFIG", soundVol: vol, soundFreq: freq });
+    postData({ action: "SAVE_SOUND_CONFIG", soundVol: vol, soundFreq: freq, soundSpeed: speed });
   }
 
   // --- ADMIN CATALOGOS Y USUARIOS ---
