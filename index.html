@@ -1049,40 +1049,97 @@
 
   // --- WHATSAPP COPIAR ---
   function copiarWhatsApp() {
-    let act = getActiveMaquinasLogs();
-    let fDate = document.getElementById('filtroFechaMaq').value;
-    let rs = act.filter(r => normalizeDateStr(r.fecha) === fDate && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
-    
-    let sts = [];
-    if(document.getElementById('chkCopyCaida').checked) sts.push('Caida');
-    if(document.getElementById('chkCopyCorr').checked) sts.push('Corriendo');
-    if(document.getElementById('chkCopyAjuste').checked) sts.push('Ajuste');
-    if(document.getElementById('chkCopySetup').checked) sts.push('Set up');
-
-    rs = rs.filter(r => sts.includes(r.estatus));
-    if(!rs.length) return alert("Sin registros con esos filtros.");
-
-    let txt = `📋 *REPORTE DE MÁQUINAS (${fDate})*\n👤 *Sup:* ${currentUser}\n\n`;
-    
-    sts.forEach(st => {
-      let sub = rs.filter(x => x.estatus === st);
-      if(sub.length > 0) {
-        txt += `🛑 *${st.toUpperCase()}*\n`;
-        sub.forEach(r => {
-          let term = r.hFin ? " (Terminado)" : " (Pendiente)";
-          txt += `• *M:* ${r.maquina} ${st!=='Caida'?term:''}\n`;
-          if(st !== 'Caida') txt += `  Item: ${r.item} | H: ${formatHora(r.hInicio)} a ${r.hFin?formatHora(r.hFin):'--'}\n`;
-          if(st === 'Corriendo') txt += `  Pzas Plan: ${r.piezasPlan||0} | Real: ${r.piezasReal||0} | Delta: ${r.piezasDelta||0}\n`;
-          if(r.tecnico) txt += `  Tec: ${r.tecnico}\n`;
-          if(r.comentarios) txt += `  Obs: ${r.comentarios}\n`;
-        });
-        txt += '\n';
-      }
+  let act = getActiveMaquinasLogs();
+  let fDate = document.getElementById('filtroFechaMaq').value;
+  
+  // 1. Filtrar por fecha y supervisor
+  let rs = act.filter(r => normalizeDateStr(r.fecha) === fDate && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
+  
+  // 2. APLICAR EL FILTRO DE HORA AL COPIADO
+  let fTimeM = document.getElementById('filtroHoraMaq') ? document.getElementById('filtroHoraMaq').value : "";
+  if(fTimeM) {
+    let filterTimeNormalized = formatTimeInput(fTimeM);
+    rs = rs.filter(r => {
+      if(!r.hInicio) return false;
+      let regTimeNormalized = formatTimeInput(r.hInicio);
+      return regTimeNormalized >= filterTimeNormalized;
     });
-
-    let ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    alert("Copiado al portapapeles.");
   }
+
+  // 3. Tomar en cuenta los checkboxes de estatus
+  let sts = [];
+  if(document.getElementById('chkCopyCaida').checked) sts.push('Caida');
+  if(document.getElementById('chkCopyCorr').checked) sts.push('Corriendo');
+  if(document.getElementById('chkCopyAjuste').checked) sts.push('Ajuste');
+  if(document.getElementById('chkCopySetup').checked) sts.push('Set up');
+
+  rs = rs.filter(r => sts.includes(r.estatus));
+  if(!rs.length) return alert("Sin registros con esos filtros.");
+
+  // 4. Generar el encabezado
+  let txt = `📋 *REPORTE DE MÁQUINAS (${fDate})*\n👤 Supervisor: ${currentUser}\n\n`;
+  
+  // 5. Agrupar y formatear los datos (Pendientes y Terminados)
+  sts.forEach(st => {
+    let sub = rs.filter(x => x.estatus === st);
+    if(sub.length > 0) {
+      let stName = st.toUpperCase();
+      let pendientes = sub.filter(x => !x.hFin && st !== 'Caida');
+      let terminados = sub.filter(x => x.hFin && st !== 'Caida');
+      let caidas = sub.filter(x => st === 'Caida');
+
+      // --- PENDIENTES ---
+      if (pendientes.length > 0) {
+        txt += `⏳ *${stName} PENDIENTES (${pendientes.length})*\n-----------------------------------\n`;
+        pendientes.forEach((r, i) => {
+          txt += `${i+1}. Máquina: ${r.maquina}\n`;
+          if(r.item) txt += `   Ítem: ${r.item}\n`;
+          if(r.tecnico) txt += `   Técnico: ${r.tecnico}\n`;
+          if(r.operador) txt += `   Operador: ${r.operador}\n`;
+          txt += `   Inicio: ${formatHora(r.hInicio)} | Fin: En proceso...\n`;
+          txt += `   Tiempo: En proceso\n`;
+          if(r.comentarios) txt += `   Obs: ${r.comentarios}\n`;
+          txt += `\n`;
+        });
+      }
+
+      // --- TERMINADOS ---
+      if (terminados.length > 0) {
+        txt += `✅ *${stName} TERMINADOS (${terminados.length})*\n-----------------------------------\n`;
+        terminados.forEach((r, i) => {
+          txt += `${i+1}. Máquina: ${r.maquina}\n`;
+          if(r.item) txt += `   Ítem: ${r.item}\n`;
+          if(r.tecnico) txt += `   Técnico: ${r.tecnico}\n`;
+          if(r.operador) txt += `   Operador: ${r.operador}\n`;
+          txt += `   Inicio: ${formatHora(r.hInicio)} | Fin: ${formatHora(r.hFin)}\n`;
+          txt += `   Tiempo: ${r.tiempo || '-'}\n`;
+          if(r.comentarios) txt += `   Obs: ${r.comentarios}\n`;
+          txt += `\n`;
+        });
+      }
+
+      // --- CAÍDAS (Las caídas no tienen hora de fin, se formatean distinto) ---
+      if (caidas.length > 0) {
+        txt += `🛑 *CAÍDAS (${caidas.length})*\n-----------------------------------\n`;
+        caidas.forEach((r, i) => {
+          txt += `${i+1}. Máquina: ${r.maquina}\n`;
+          txt += `   Turno: ${r.turno || '-'}\n`;
+          if(r.comentarios) txt += `   Obs: ${r.comentarios}\n`;
+          txt += `\n`;
+        });
+      }
+    }
+  });
+
+  // Copiar al portapapeles
+  let ta = document.createElement("textarea"); 
+  ta.value = txt; 
+  document.body.appendChild(ta); 
+  ta.select(); 
+  document.execCommand('copy'); 
+  document.body.removeChild(ta);
+  alert("Copiado al portapapeles. ¡Listo para pegar en WhatsApp!");
+}
 
   // --- TV RENDERING ---
   function renderTV() {
