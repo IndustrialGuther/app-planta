@@ -116,10 +116,9 @@
       </form>
 
       <div class="filter-box" style="background:#e0f2fe;">
-        <label style="color:#0369a1;">🔍 Filtros Operadores:</label>
+        <label style="color:#0369a1;">🔍 Filtro de Operadores por Fecha:</label>
         <div style="display:flex; gap:10px; align-items:center;">
           <input type="date" id="filtroFechaOp" onchange="renderHistoriales()">
-          <input type="time" id="filtroHoraOp" onchange="renderHistoriales()" placeholder="Hora (Opc)">
           <button type="button" class="btn-secondary" onclick="resetFiltrosOp()">Restablecer</button>
         </div>
       </div>
@@ -215,9 +214,10 @@
         <label style="color:#047857;">🔍 Filtros de Visualización / Reporte:</label>
         <div style="display:flex; gap:10px; align-items:center;">
           <input type="date" id="filtroFechaMaq" onchange="renderHistoriales()">
-          <input type="time" id="filtroHoraMaq" onchange="renderHistoriales()" placeholder="Hora Ini (Opc)">
+          <input type="time" id="filtroHoraMaq" onchange="renderHistoriales()" title="Muestra todo lo trabajado desde la hora seleccionada en adelante">
           <button type="button" class="btn-secondary" onclick="resetFiltrosSetup()">Restablecer Filtrado</button>
         </div>
+        <small style="color:#047857;">* Al seleccionar una hora (ej. 07:00 AM), mostrará todo lo registrado desde esa hora en adelante.</small>
         <div class="chk-group" style="margin-top:10px;">
           <label><input type="checkbox" id="chkCopyCaida" checked onchange="renderHistoriales()"> Caídas</label>
           <label><input type="checkbox" id="chkCopyCorr" checked onchange="renderHistoriales()"> Corriendo</label>
@@ -521,7 +521,6 @@
 
   function resetFiltrosOp() {
     document.getElementById('filtroFechaOp').value = getTodayString();
-    document.getElementById('filtroHoraOp').value = "";
     renderHistoriales();
   }
 
@@ -656,7 +655,7 @@
 
   function delMaqReg(id) {
     if(confirm("¿Borrar este registro?")) {
-      let pld = { action: "DELETE_REGISTRO_SETUP", id: id, actionType: "DELETE", timestamp: new Date().toLocaleString() };
+      let pld = { action: "DELETE_REGISTRO_SETUP", id: id, actionType: "DELETE" };
       dbData.registrosSetup.push(pld);
       renderHistoriales(); postData(pld);
     }
@@ -684,7 +683,15 @@
     let fTimeM = document.getElementById('filtroHoraMaq') ? document.getElementById('filtroHoraMaq').value : "";
     
     let filM = act.filter(r => normalizeDateStr(r.fecha) === fDateM && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
-    if(fTimeM) filM = filM.filter(r => (r.hInicio||"").includes(fTimeM));
+    
+    // FILTRADO POR HORA: Muestra todo desde la hora seleccionada en adelante
+    if(fTimeM) {
+      filM = filM.filter(r => {
+        if(!r.hInicio) return false;
+        let tStr = formatTimeInput(r.hInicio);
+        return tStr >= fTimeM;
+      });
+    }
 
     let htmlM = "";
     ['Caida','Corriendo','Ajuste','Set up'].forEach(st => {
@@ -711,9 +718,9 @@
       }
     });
     let divM = document.getElementById('historialSetup');
-    if(divM) divM.innerHTML = htmlM || '<p style="color:#94a3b8;">Sin registros para esta fecha.</p>';
+    if(divM) divM.innerHTML = htmlM || '<p style="color:#94a3b8;">Sin registros para estos criterios.</p>';
 
-    // 2. Historial Operadores
+    // 2. Historial Operadores (Solamente por fecha)
     let fDateOp = document.getElementById('filtroFechaOp') ? document.getElementById('filtroFechaOp').value : getTodayString();
     let filOp = (dbData.registrosOperadores||[]).filter(r => normalizeDateStr(r.fecha) === fDateOp && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
     let htmlOp = (filOp.length > 0) ? filOp.map(r => `
@@ -746,7 +753,6 @@
   function renderHistorialGeneralAdmin() {
     if(!isAdmin) return;
     
-    // Poblar dropdown de supervisores si está vacío
     let selSup = document.getElementById('histFiltroSup');
     if(selSup && selSup.options.length <= 1) {
       selSup.innerHTML = '<option value="TODOS">Todos los supervisores</option>';
@@ -918,11 +924,23 @@
         div.innerHTML = (dbData.maquinas||[]).map(m => {
            let n = typeof m==='object' ? (m.maquina||m.col1) : m;
            let nv = typeof m==='object' ? (m.nave||m.col2||'') : '';
-           return `<div class="item-row"><span>${n} <small>(${nv})</small></span><button class="btn-danger" onclick="delCat('Maquinas', '${n}')">🗑️</button></div>`;
+           return `<div class="item-row">
+             <span>${n} <small>(${nv})</small></span>
+             <div class="item-actions">
+               <button class="btn-edit" onclick="editMaqCat('${n}', '${nv}')">✏️</button>
+               <button class="btn-danger" onclick="delCat('Maquinas', '${n}')">🗑️</button>
+             </div>
+           </div>`;
         }).join('');
       } else {
         let list = dbData[cat.toLowerCase()] || [];
-        div.innerHTML = list.map(i => `<div class="item-row"><span>${i}</span><button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button></div>`).join('');
+        div.innerHTML = list.map(i => `<div class="item-row">
+          <span>${i}</span>
+          <div class="item-actions">
+            <button class="btn-edit" onclick="editCat('${cat}', '${i}')">✏️</button>
+            <button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button>
+          </div>
+        </div>`).join('');
       }
     };
     fill('Naves', 'listAdminNaves'); 
@@ -939,7 +957,10 @@
       divU.innerHTML = (dbData.usuarios||[]).map(u => `
         <div class="item-row">
           <span><b>${u.user}</b> <small>(${u.permisos||'Supervisor'})</small></span>
-          <button class="btn-danger" onclick="delUsuario('${u.user}')">🗑️</button>
+          <div class="item-actions">
+            <button class="btn-edit" onclick="editUsuario('${u.user}', '${u.pass}', '${u.permisos||'Supervisor'}')">✏️</button>
+            <button class="btn-danger" onclick="delUsuario('${u.user}')">🗑️</button>
+          </div>
         </div>`).join('');
     }
   }
@@ -963,6 +984,37 @@
     postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Maquinas", val1: maq, val2: nav });
   }
 
+  function editCat(cat, oldVal) {
+    let newVal = prompt(`Editar ${cat}:`, oldVal);
+    if (newVal && newVal.trim() !== "" && newVal !== oldVal) {
+      newVal = newVal.trim();
+      let k = cat.toLowerCase();
+      if (dbData[k]) {
+        let idx = dbData[k].indexOf(oldVal);
+        if (idx !== -1) dbData[k][idx] = newVal;
+      }
+      renderDataLists();
+      postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: cat, val1: oldVal, newVal1: newVal });
+    }
+  }
+
+  function editMaqCat(oldMaq, oldNave) {
+    let newMaq = prompt("Nombre de la máquina:", oldMaq);
+    if (!newMaq || !newMaq.trim()) return;
+    newMaq = newMaq.trim();
+    let newNave = prompt("Nave asignada:", oldNave) || oldNave;
+
+    if (dbData.maquinas) {
+      let item = dbData.maquinas.find(x => (typeof x === 'object' ? (x.maquina||x.col1) : x) === oldMaq);
+      if (item && typeof item === 'object') {
+        item.maquina = newMaq;
+        item.nave = newNave;
+      }
+    }
+    renderDataLists();
+    postData({ action: "MANAGE_CATALOGO", op: "EDIT", catalogo: "Maquinas", val1: oldMaq, newVal1: newMaq, val2: newNave });
+  }
+
   function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       let k = cat.toLowerCase();
@@ -984,6 +1036,25 @@
     document.getElementById('addUsrName').value = '';
     document.getElementById('addUsrPass').value = '';
     postData({ action: "ADD_USER", user: u, pass: p, permisos: perm });
+  }
+
+  function editUsuario(origUser, origPass, origPerm) {
+    let newUser = prompt("Usuario:", origUser);
+    if(!newUser || !newUser.trim()) return;
+    newUser = newUser.trim();
+    let newPass = prompt("Contraseña:", origPass);
+    if(!newPass || !newPass.trim()) return;
+    newPass = newPass.trim();
+    let newPerm = prompt("Permisos (Supervisor / Admin):", origPerm) || "Supervisor";
+
+    let uObj = (dbData.usuarios || []).find(x => x.user === origUser);
+    if(uObj) {
+      uObj.user = newUser;
+      uObj.pass = newPass;
+      uObj.permisos = newPerm;
+    }
+    renderAdminLists();
+    postData({ action: "EDIT_USER", origUser: origUser, newUser: newUser, pass: newPass, permisos: newPerm });
   }
 
   function delUsuario(u) {
