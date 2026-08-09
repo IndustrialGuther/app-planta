@@ -375,7 +375,7 @@
   }
 
   function renderDataLists() {
-    let maqs = (dbData.maquinas || []).map(m => typeof m === 'object' ? (m.maquina || m.col1) : m);
+    let maqs = (dbData.maquinas || []).map(m => typeof m === 'object' ? (m.maquina || 'Sin Nombre') : m);
     let lM = document.getElementById('listMaquinas'); lM.innerHTML = ''; maqs.forEach(m => lM.innerHTML += `<option value="${m}">`);
     
     let ops = document.getElementById('listOperadores'); ops.innerHTML=''; (dbData.operadores||[]).forEach(i => ops.innerHTML += `<option value="${i}">`);
@@ -862,7 +862,7 @@
     
     let maqNaveMap = {};
     (dbData.maquinas || []).forEach(m => {
-       if(typeof m === 'object') maqNaveMap[m.maquina || m.col1] = m.nave || m.col2 || "Sin Nave";
+       if(typeof m === 'object') maqNaveMap[m.maquina] = m.nave || "Sin Nave";
        else maqNaveMap[m] = "Sin Nave";
     });
 
@@ -920,38 +920,42 @@
     let fill = (cat, id) => {
       let div = document.getElementById(id);
       if(!div) return;
-      if(cat==='Maquinas') {
-        div.innerHTML = (dbData.maquinas||[]).map(m => {
-           let n = typeof m==='object' ? (m.maquina||m.col1) : m;
-           let nv = typeof m==='object' ? (m.nave||m.col2||'') : '';
-           return `<div class="item-row">
-             <span>${n} <small>(${nv})</small></span>
-             <div class="item-actions">
-               <button class="btn-edit" onclick="editMaqCat('${n}', '${nv}')">✏️</button>
-               <button class="btn-danger" onclick="delCat('Maquinas', '${n}')">🗑️</button>
-             </div>
-           </div>`;
-        }).join('');
-      } else {
-        let list = dbData[cat.toLowerCase()] || [];
-        div.innerHTML = list.map(i => `<div class="item-row">
-          <span>${i}</span>
-          <div class="item-actions">
-            <button class="btn-edit" onclick="editCat('${cat}', '${i}')">✏️</button>
-            <button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button>
-          </div>
-        </div>`).join('');
-      }
+      
+      let list = dbData[cat.toLowerCase()] || [];
+      div.innerHTML = list.map(i => `<div class="item-row">
+        <span>${i}</span>
+        <div class="item-actions">
+          <button class="btn-edit" onclick="editCat('${cat}', '${i}')">✏️</button>
+          <button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button>
+        </div>
+      </div>`).join('');
     };
+
     fill('Naves', 'listAdminNaves'); 
-    fill('Maquinas', 'listAdminMaquinas'); 
     fill('Marcas', 'listAdminMarcas'); 
     fill('Operadores', 'listAdminOperadores'); 
     fill('Items', 'listAdminItems'); 
     fill('Tecnicos', 'listAdminTecnicos'); 
     fill('Turnos', 'listAdminTurnos');
 
-    // Usuarios
+    // MÁQUINAS (Especial para manejar Máquina + Nave)
+    let divM = document.getElementById('listAdminMaquinas');
+    if(divM) {
+      divM.innerHTML = (dbData.maquinas || []).map(m => {
+        let maq = typeof m === 'object' ? m.maquina : m;
+        let nav = typeof m === 'object' ? (m.nave || 'Sin Nave') : 'Sin Nave';
+        return `
+          <div class="item-row">
+            <span><b>${maq}</b> <small style="color:#64748b;">(Nave: ${nav})</small></span>
+            <div class="item-actions">
+              <button class="btn-edit" onclick="editMaqCat('${maq}', '${nav}')">✏️</button>
+              <button class="btn-danger" onclick="delCat('Maquinas', '${maq}')">🗑️</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // USUARIOS
     let divU = document.getElementById('listAdminUsuarios');
     if(divU) {
       divU.innerHTML = (dbData.usuarios||[]).map(u => `
@@ -976,11 +980,14 @@
 
   function addMaqConNave() {
     let maq = document.getElementById('addMaq').value.trim();
-    let nav = document.getElementById('addMaqNave').value;
-    if(!maq || !nav) return alert("Indica máquina y nave");
+    let nav = document.getElementById('addMaqNave').value.trim();
+    if(!maq || !nav) return alert("Indica la máquina y selecciona una nave.");
+    
     if(!dbData.maquinas) dbData.maquinas = [];
-    dbData.maquinas.push({maquina: maq, nave: nav});
-    renderDataLists(); document.getElementById('addMaq').value = '';
+    dbData.maquinas.push({ maquina: maq, nave: nav });
+    
+    renderDataLists(); 
+    document.getElementById('addMaq').value = '';
     postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Maquinas", val1: maq, val2: nav });
   }
 
@@ -999,16 +1006,23 @@
   }
 
   function editMaqCat(oldMaq, oldNave) {
-    let newMaq = prompt("Nombre de la máquina:", oldMaq);
-    if (!newMaq || !newMaq.trim()) return;
+    let newMaq = prompt("Nuevo nombre para la máquina:", oldMaq);
+    if (newMaq === null) return;
     newMaq = newMaq.trim();
-    let newNave = prompt("Nave asignada:", oldNave) || oldNave;
+    if (!newMaq) return alert("El nombre de la máquina no puede estar vacío.");
+
+    let newNave = prompt("Nueva nave para la máquina:", oldNave || "Sin Nave");
+    if (newNave === null) return;
+    newNave = newNave.trim();
 
     if (dbData.maquinas) {
-      let item = dbData.maquinas.find(x => (typeof x === 'object' ? (x.maquina||x.col1) : x) === oldMaq);
+      let item = dbData.maquinas.find(x => (typeof x === 'object' ? x.maquina : x) === oldMaq);
       if (item && typeof item === 'object') {
         item.maquina = newMaq;
         item.nave = newNave;
+      } else if (item) {
+        let idx = dbData.maquinas.indexOf(item);
+        dbData.maquinas[idx] = { maquina: newMaq, nave: newNave };
       }
     }
     renderDataLists();
@@ -1018,7 +1032,7 @@
   function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       let k = cat.toLowerCase();
-      if(k==='maquinas') dbData.maquinas = dbData.maquinas.filter(x => (typeof x === 'object' ? (x.maquina||x.col1) : x) !== val);
+      if(k==='maquinas') dbData.maquinas = dbData.maquinas.filter(x => (typeof x === 'object' ? x.maquina : x) !== val);
       else if(dbData[k]) dbData[k] = dbData[k].filter(x => x !== val);
       renderDataLists(); postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
     }
