@@ -61,7 +61,6 @@
     .tvc-setup { border-color: #10b981; background: #064e3b; }
     .tvc-term { border-color: #065f46; background: #022c22; opacity: 0.85; }
     
-    /* Alarma Parpadeante en TV */
     @keyframes blink-red {
       0%, 100% { border-color: #ef4444; box-shadow: 0 0 12px #ef4444; }
       50% { border-color: #334155; box-shadow: none; }
@@ -274,40 +273,36 @@
     <div id="panelAdmin" class="card hidden">
       <h2 style="color: var(--admin)">Gestión de Catálogos y Usuarios (Admin)</h2>
       
-      <!-- CONFIGURACIÓN DE ALARMA -->
-      <h3>⏰ Control de Alarma Pizarra TV</h3>
-      <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; background:#f1f5f9; padding:10px; border-radius:8px;">
-        <label style="margin:0; flex:1;">Límite de Alarma por Tiempo Excedido (Minutos):</label>
-        <input type="number" id="cfgAlarmMin" value="150" style="width:120px; margin:0;" min="1">
-        <button class="btn-admin" onclick="guardarConfigAlarma()">Guardar Límite</button>
-      </div>
-      <hr>
-
-      <!-- CONFIGURACIÓN DE SONIDO -->
-      <h3>🔊 Control de Sonido y Alarmas</h3>
+      <!-- CONFIGURACIÓN DE ALARMA Y SONIDO -->
+      <h3>⏰ Control de Alarma y Sonido (Pizarra TV)</h3>
       <div style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:15px;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-          <div style="flex:1; min-width:180px;">
-            <label>Volumen del Sonido:</label>
-            <input type="range" id="sndVolume" min="0" max="1" step="0.05" value="0.3" onchange="guardarConfigSonido()">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+          <label style="margin:0; flex:1; min-width:200px;">Límite Alarma Excedida (Mins):</label>
+          <input type="number" id="cfgAlarmMin" value="150" style="width:120px; margin:0;" min="1">
+          <button class="btn-admin" onclick="guardarConfigAlarma()">Guardar Límite</button>
+        </div>
+
+        <hr style="border:0; border-top:1px dashed #cbd5e1; margin:10px 0;">
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; align-items:center;">
+          <div>
+            <label>Volumen del Sonido: <span id="lblSoundVol">50%</span></label>
+            <input type="range" id="cfgSoundVol" min="0" max="100" value="50" oninput="document.getElementById('lblSoundVol').textContent = this.value+'%'">
           </div>
-          <div style="flex:1; min-width:180px;">
-            <label>Frecuencia / Tono (Hz):</label>
-            <input type="number" id="sndFreq" value="880" min="200" max="3000" step="10" onchange="guardarConfigSonido()">
+          <div>
+            <label>Frecuencia / Tono (Hz): <span id="lblSoundFreq">880 Hz</span></label>
+            <input type="range" id="cfgSoundFreq" min="300" max="2500" step="10" value="880" oninput="document.getElementById('lblSoundFreq').textContent = this.value+' Hz'">
           </div>
-          <div style="flex:1; min-width:180px;">
-            <label>Duración / Velocidad del Pitido (s):</label>
-            <input type="number" id="sndDuration" value="0.25" min="0.05" max="2" step="0.05" onchange="guardarConfigSonido()">
+          <div style="grid-column: 1 / -1;">
+            <label>Dispositivo de Salida de Audio (Bocina):</label>
+            <select id="cfgAudioDevice"><option value="">Cargando dispositivos...</option></select>
           </div>
         </div>
-        <div style="margin-bottom:10px;">
-          <label>Dispositivo / Bocina de Salida:</label>
-          <div style="display:flex; gap:10px;">
-            <select id="sndDevice" onchange="guardarConfigSonido()"></select>
-            <button class="btn-secondary" onclick="cargarDispositivosAudio()" style="width:140px;">🔄 Buscar Bocinas</button>
-          </div>
+
+        <div style="display:flex; gap:10px; margin-top:12px;">
+          <button type="button" class="btn-admin" onclick="guardarConfigSonido()">💾 Guardar Ajustes Sonido</button>
+          <button type="button" class="btn-secondary" onclick="triggerAlarmBeep(true)">🔊 Probar Sonido Alarma</button>
         </div>
-        <button class="btn-admin" onclick="probarSonidoAlarma()" style="margin-top:5px;">🔊 Probar Sonido de Alarma</button>
       </div>
       <hr>
 
@@ -372,52 +367,54 @@
 
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
-  let dbData = { naves:[], maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[], alarmMinutes: 150 };
+  let dbData = { naves:[], maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[], alarmMinutes: 150, soundVol: 50, soundFreq: 880 };
   let currentUser = null, isAdmin = false;
   let tvInterval = null;
   let isMuted = false;
   let audioCtx = null;
-
-  let soundConfig = JSON.parse(localStorage.getItem('soundConfig')) || {
-    volume: 0.3,
-    freq: 880,
-    duration: 0.25,
-    deviceId: 'default'
-  };
+  let selectedDeviceId = "";
 
   function getTodayString() { let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
-  function getNowFormattedString() {
+  function getNowMxString() {
     return new Date().toLocaleString("es-MX", {timeZone: "America/Mexico_City"});
+  }
+
+  function getNowTimeMxString() {
+    return new Date().toLocaleTimeString("es-MX", {hour: '2-digit', minute:'2-digit', second:'2-digit'});
   }
 
   function formatHora(h) {
     if(!h) return "";
-    let str = String(h).trim(); let timeStr = "";
-    if(str.includes("T")) timeStr = str.split("T")[1].split(":").slice(0,2).join(":");
-    else if(str.includes(" ")) { let p = str.split(" ").find(x=>x.includes(":")); if(p) timeStr=p.split(":").slice(0,2).join(":"); }
-    else if(str.includes(":")) timeStr = str.split(":").slice(0,2).join(":");
-    if(!timeStr) return str;
-    let [hh, mm] = timeStr.split(":"); let hInt = parseInt(hh, 10); if(isNaN(hInt)) return str;
-    let ampm = hInt >= 12 ? 'PM' : 'AM'; hInt = hInt % 12 || 12;
+    let formatted = formatTimeInput(h);
+    if(!formatted) return String(h);
+    let [hh, mm] = formatted.split(":");
+    let hInt = parseInt(hh, 10);
+    let ampm = hInt >= 12 ? 'PM' : 'AM';
+    hInt = hInt % 12 || 12;
     return `${String(hInt).padStart(2,'0')}:${mm} ${ampm}`;
   }
 
+  // Normalización estricta de horas a HH:MM de 24 horas para comparaciones correctas
   function formatTimeInput(h) {
     if(!h) return "";
     let str = String(h).trim();
-    if(str.includes("T")) str = str.split("T")[1];
-    if(str.includes(" ")) {
-      let p = str.split(" ").find(x => x.includes(":"));
-      if(p) str = p;
-    }
-    if(str.includes(":")) {
-      let parts = str.split(":");
-      let hh = String(parts[0]).padStart(2, '0');
-      let mm = String(parts[1]).slice(0, 2).padStart(2, '0');
-      return `${hh}:${mm}`;
-    }
-    return "";
+    let ampm = "";
+    if(str.toLowerCase().includes("am") || str.toLowerCase().includes("a.m.")) ampm = "AM";
+    if(str.toLowerCase().includes("pm") || str.toLowerCase().includes("p.m.")) ampm = "PM";
+
+    let p = str.includes("T") ? str.split("T")[1] : (str.includes(" ") ? str.split(" ").find(x=>x.includes(":"))||str : str);
+    if(!p || !p.includes(":")) return "";
+    
+    let parts = p.split(":");
+    let hh = parseInt(parts[0], 10);
+    let mm = parseInt(parts[1], 10);
+    if(isNaN(hh) || isNaN(mm)) return "";
+
+    if(ampm === "PM" && hh < 12) hh += 12;
+    if(ampm === "AM" && hh === 12) hh = 0;
+
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
   }
 
   function getSupervisor(r) { return (r.usuario || r.user || "Desconocido").trim(); }
@@ -429,13 +426,24 @@
   }
 
   function getActiveMaquinasLogs() {
-    let map = {};
-    (dbData.registrosSetup || []).forEach(r => { map[r.id] = r; });
-    let acts = Object.values(map).filter(r => r.actionType !== 'DELETE');
-    return acts.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true, sensitivity: 'base'}));
+    let list = (dbData.registrosSetup || []);
+    return list.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true, sensitivity: 'base'}));
   }
 
-  // MANEJO Y CONFIGURACIÓN DE SONIDO DE ALARMA
+  // MANEJO DE CONFIGURACIÓN DE AUDIO Y BOCINAS
+  function loadAudioDevices() {
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        let sel = document.getElementById('cfgAudioDevice');
+        if(!sel) return;
+        sel.innerHTML = '<option value="">Predeterminado del sistema</option>';
+        devices.filter(d => d.kind === 'audiooutput').forEach((d, idx) => {
+          sel.innerHTML += `<option value="${d.deviceId}">${d.label || 'Bocina / Salida ' + (idx + 1)}</option>`;
+        });
+      }).catch(e => console.log(e));
+    }
+  }
+
   function toggleMuteTV() {
     isMuted = !isMuted;
     let btn = document.getElementById('btnMuteTV');
@@ -445,67 +453,30 @@
     }
   }
 
-  async function cargarDispositivosAudio() {
-    let select = document.getElementById('sndDevice');
-    if(!select) return;
-    select.innerHTML = '<option value="default">Dispositivo Predeterminado</option>';
-    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-      try {
-        let devices = await navigator.mediaDevices.enumerateDevices();
-        let audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-        audioOutputs.forEach((d, idx) => {
-          let opt = document.createElement('option');
-          opt.value = d.deviceId;
-          opt.textContent = d.label || `Salida de Audio ${idx + 1}`;
-          if(d.deviceId === soundConfig.deviceId) opt.selected = true;
-          select.appendChild(opt);
-        });
-      } catch(e) { console.error("Error al buscar dispositivos de audio:", e); }
-    }
-  }
-
-  function guardarConfigSonido() {
-    soundConfig.volume = parseFloat(document.getElementById('sndVolume').value) || 0.3;
-    soundConfig.freq = parseInt(document.getElementById('sndFreq').value, 10) || 880;
-    soundConfig.duration = parseFloat(document.getElementById('sndDuration').value) || 0.25;
-    soundConfig.deviceId = document.getElementById('sndDevice').value || 'default';
-    localStorage.setItem('soundConfig', JSON.stringify(soundConfig));
-  }
-
-  function initSoundInputs() {
-    let v = document.getElementById('sndVolume'); if(v) v.value = soundConfig.volume;
-    let f = document.getElementById('sndFreq'); if(f) f.value = soundConfig.freq;
-    let d = document.getElementById('sndDuration'); if(d) d.value = soundConfig.duration;
-    cargarDispositivosAudio();
-  }
-
-  function triggerAlarmBeep() {
-    if(isMuted) return;
+  function triggerAlarmBeep(isTest = false) {
+    if(isMuted && !isTest) return;
     try {
       if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      if (soundConfig.deviceId && typeof audioCtx.setSinkId === 'function') {
-        audioCtx.setSinkId(soundConfig.deviceId).catch(err => console.log(err));
-      }
-      
+      let vol = (parseFloat(dbData.soundVol) || 50) / 100;
+      let freq = parseFloat(dbData.soundFreq) || 880;
+
       let osc = audioCtx.createOscillator();
       let gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(soundConfig.freq || 880, audioCtx.currentTime);
-      gain.gain.setValueAtTime(soundConfig.volume !== undefined ? soundConfig.volume : 0.3, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol * 0.3, audioCtx.currentTime);
+      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + (soundConfig.duration || 0.25));
-    } catch(e) { console.log(e); }
-  }
 
-  function probarSonidoAlarma() {
-    guardarConfigSonido();
-    let tempMuted = isMuted;
-    isMuted = false;
-    triggerAlarmBeep();
-    isMuted = tempMuted;
+      let selDev = document.getElementById('cfgAudioDevice');
+      if(selDev && selDev.value && audioCtx.setSinkId) {
+        audioCtx.setSinkId(selDev.value).catch(err => console.log(err));
+      }
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+    } catch(e) { console.log(e); }
   }
 
   async function syncData() {
@@ -516,6 +487,18 @@
       if(dbData.alarmMinutes) {
         let el = document.getElementById('cfgAlarmMin');
         if(el) el.value = dbData.alarmMinutes;
+      }
+      if(dbData.soundVol) {
+        let elV = document.getElementById('cfgSoundVol');
+        let lblV = document.getElementById('lblSoundVol');
+        if(elV) elV.value = dbData.soundVol;
+        if(lblV) lblV.textContent = dbData.soundVol + '%';
+      }
+      if(dbData.soundFreq) {
+        let elF = document.getElementById('cfgSoundFreq');
+        let lblF = document.getElementById('lblSoundFreq');
+        if(elF) elF.value = dbData.soundFreq;
+        if(lblF) lblF.textContent = dbData.soundFreq + ' Hz';
       }
       renderDataLists();
       if(!document.getElementById('panelTV').classList.contains('hidden')) renderTV();
@@ -551,7 +534,7 @@
   async function init() { 
     await syncData(); 
     document.querySelectorAll('input[type="date"]').forEach(i => i.value = getTodayString()); 
-    initSoundInputs();
+    loadAudioDevices();
   }
   document.addEventListener("DOMContentLoaded", init);
 
@@ -609,7 +592,7 @@
     else if(t==='sol'){ document.getElementById('btnTabSol').classList.add('active'); document.getElementById('formSolubles').classList.remove('hidden'); }
     else if(t==='setup'){ document.getElementById('btnTabSet').classList.add('active'); document.getElementById('formSetup').classList.remove('hidden'); }
     else if(t==='adminHist'){ document.getElementById('btnTabAdminHist').classList.add('admin-active'); document.getElementById('panelAdminHistorial').classList.remove('hidden'); renderHistorialGeneralAdmin(); }
-    else if(t==='admin'){ document.getElementById('btnTabAdmin').classList.add('admin-active'); document.getElementById('panelAdmin').classList.remove('hidden'); initSoundInputs(); }
+    else if(t==='admin'){ document.getElementById('btnTabAdmin').classList.add('admin-active'); document.getElementById('panelAdmin').classList.remove('hidden'); loadAudioDevices(); }
     renderHistoriales();
   }
 
@@ -623,9 +606,9 @@
   function guardarOperador(e) {
     e.preventDefault();
     let id = document.getElementById('editOpId').value;
-    let nowStr = getNowFormattedString();
-    let existingReg = id ? (dbData.registrosOperadores||[]).find(x => x.id === id) : null;
-
+    let nowStr = getNowMxString();
+    
+    let existingObj = id ? (dbData.registrosOperadores||[]).find(x => x.id === id) : null;
     let pld = {
       action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP",
       id: id || ("OP_" + new Date().getTime()),
@@ -636,7 +619,7 @@
       opCubre: document.getElementById('opCubre').value,
       comentarios: document.getElementById('opComentarios').value,
       usuario: currentUser,
-      fechaRegistro: existingReg ? (existingReg.fechaRegistro || nowStr) : nowStr,
+      fechaRegistro: existingObj ? (existingObj.fechaRegistro || nowStr) : nowStr,
       fechaActualizacion: nowStr
     };
 
@@ -644,6 +627,7 @@
       let idx = dbData.registrosOperadores.findIndex(x => x.id === id);
       if(idx !== -1) dbData.registrosOperadores[idx] = { ...dbData.registrosOperadores[idx], ...pld };
     } else {
+      if(!dbData.registrosOperadores) dbData.registrosOperadores = [];
       dbData.registrosOperadores.push(pld);
     }
 
@@ -682,8 +666,10 @@
   function guardarSoluble(e) {
     e.preventDefault();
     let id = document.getElementById('editSolId').value;
-    let nowStr = getNowFormattedString();
-    let existingReg = id ? (dbData.registrosSolubles||[]).find(x => x.id === id) : null;
+    let nowStr = getNowMxString();
+    let nowTime = getNowTimeMxString();
+
+    let existingObj = id ? (dbData.registrosSolubles||[]).find(x => x.id === id) : null;
 
     let pld = {
       action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL",
@@ -698,7 +684,8 @@
       marca: document.getElementById('solMarca').value,
       comentarios: document.getElementById('solComentarios').value,
       usuario: currentUser,
-      fechaRegistro: existingReg ? (existingReg.fechaRegistro || nowStr) : nowStr,
+      horaRegistro: existingObj ? (existingObj.horaRegistro || nowTime) : nowTime,
+      fechaRegistro: existingObj ? (existingObj.fechaRegistro || nowStr) : nowStr,
       fechaActualizacion: nowStr
     };
 
@@ -706,6 +693,7 @@
       let idx = dbData.registrosSolubles.findIndex(x => x.id === id);
       if(idx !== -1) dbData.registrosSolubles[idx] = { ...dbData.registrosSolubles[idx], ...pld };
     } else {
+      if(!dbData.registrosSolubles) dbData.registrosSolubles = [];
       dbData.registrosSolubles.push(pld);
     }
 
@@ -793,6 +781,9 @@
     e.preventDefault();
     let id = document.getElementById('regId').value;
     let action = id ? "EDIT_REGISTRO_SETUP" : "ADD_REGISTRO_SETUP";
+    let nowStr = getNowMxString();
+    let existingObj = id ? (dbData.registrosSetup||[]).find(x => x.id === id) : null;
+
     let pld = {
       action: action, id: id || ("RM_" + new Date().getTime()),
       fecha: document.getElementById('regFecha').value, maquina: document.getElementById('regMaquina').value,
@@ -802,10 +793,19 @@
       opCubre: document.getElementById('regOpCubre').value, piezasPlan: document.getElementById('regPzPlan').value,
       piezasReal: document.getElementById('regPzReal').value, piezasDelta: document.getElementById('regPzDelta').value,
       item: document.getElementById('regItem').value, tecnico: document.getElementById('regTecnico').value,
-      comentarios: document.getElementById('regComentarios').value, usuario: currentUser, 
-      actionType: action.split('_')[0]
+      comentarios: document.getElementById('regComentarios').value, usuario: currentUser,
+      fechaRegistro: existingObj ? (existingObj.fechaRegistro || nowStr) : nowStr,
+      fechaActualizacion: nowStr
     };
-    dbData.registrosSetup.push(pld);
+
+    if(id) {
+      let idx = dbData.registrosSetup.findIndex(x => x.id === id);
+      if(idx !== -1) dbData.registrosSetup[idx] = { ...dbData.registrosSetup[idx], ...pld };
+    } else {
+      if(!dbData.registrosSetup) dbData.registrosSetup = [];
+      dbData.registrosSetup.push(pld);
+    }
+
     document.getElementById('filtroFechaMaq').value = pld.fecha;
     renderHistoriales(); e.target.reset(); document.getElementById('regId').value = ''; 
     document.getElementById('regFecha').value = getTodayString(); toggleRegCampos();
@@ -814,9 +814,9 @@
 
   function delMaqReg(id) {
     if(confirm("¿Borrar este registro?")) {
-      let pld = { action: "DELETE_REGISTRO_SETUP", id: id, actionType: "DELETE" };
-      dbData.registrosSetup.push(pld);
-      renderHistoriales(); postData(pld);
+      dbData.registrosSetup = dbData.registrosSetup.filter(x => x.id !== id);
+      renderHistoriales(); 
+      postData({ action: "DELETE_REGISTRO_SETUP", id: id });
     }
   }
 
@@ -843,13 +843,13 @@
     
     let filM = act.filter(r => normalizeDateStr(r.fecha) === fDateM && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
     
-    // FILTRADO POR HORA CON FORMATO PAD(2) RIGUROSO
+    // FILTRADO ESTRICTO POR HORA (Ajuste, Corriendo, Setup, Caída)
     if(fTimeM) {
-      let targetTime = formatTimeInput(fTimeM);
+      let filterTimeNormalized = formatTimeInput(fTimeM);
       filM = filM.filter(r => {
         if(!r.hInicio) return false;
-        let tStr = formatTimeInput(r.hInicio);
-        return tStr >= targetTime;
+        let regTimeNormalized = formatTimeInput(r.hInicio);
+        return regTimeNormalized >= filterTimeNormalized;
       });
     }
 
@@ -867,6 +867,7 @@
           if(st !== 'Caida') det += `<small><b>Item:</b> ${r.item} | <b>Ini:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${term ? formatHora(r.hFin) : '<i>Pendiente</i>'}</small><br>`;
           if(st === 'Corriendo') det += `<small><b>Op:</b> ${r.operador} ${r.opCubre?`(Cubre:${r.opCubre})`:''} | <b>Plan:</b> ${r.piezasPlan||0} | <b>Real:</b> ${r.piezasReal||0} | <b>Delta (Falta):</b> ${r.piezasDelta||0}</small><br>`;
           if(st === 'Ajuste' || st === 'Set up') det += `<small><b>Tec:</b> ${r.tecnico} | <b>Duración:</b> ${r.tiempo||'-'}</small><br>`;
+          if(r.fechaRegistro) det += `<small style="color:#64748b;">📅 <b>Reg:</b> ${r.fechaRegistro} ${r.fechaActualizacion?'| ✏️ <b>Act:</b> '+r.fechaActualizacion:''}</small><br>`;
           if(r.comentarios) det += `<small style="color:#64748b;"><i>${r.comentarios}</i></small>`;
 
           htmlM += `
@@ -880,11 +881,10 @@
     let divM = document.getElementById('historialSetup');
     if(divM) divM.innerHTML = htmlM || '<p style="color:#94a3b8;">Sin registros para estos criterios.</p>';
 
-    // 2. Historial Operadores (Con ordenamiento natural por máquina y timestamps)
+    // 2. Historial Operadores
     let fDateOp = document.getElementById('filtroFechaOp') ? document.getElementById('filtroFechaOp').value : getTodayString();
     let filOp = (dbData.registrosOperadores||[]).filter(r => normalizeDateStr(r.fecha) === fDateOp && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
     
-    // ORDENAMIENTO NATURAL DE MÁQUINAS (CM1 -> CM25)
     filOp.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true, sensitivity: 'base'}));
 
     let htmlOp = (filOp.length > 0) ? filOp.map(r => `
@@ -899,18 +899,15 @@
       </div>`).join('') : '<p style="color:#94a3b8;">Sin registros de operadores.</p>';
     let divOp = document.getElementById('historialOp'); if(divOp) divOp.innerHTML = htmlOp;
 
-    // 3. Historial Solubles (Con indicador de hora de registro)
+    // 3. Historial Solubles (Con Indicador de Hora de Registro)
     let fDateSol = document.getElementById('filtroFechaSol') ? document.getElementById('filtroFechaSol').value : getTodayString();
     let filSol = (dbData.registrosSolubles||[]).filter(r => normalizeDateStr(r.fecha) === fDateSol && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
-    
-    filSol.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true, sensitivity: 'base'}));
-
     let htmlSol = (filSol.length > 0) ? filSol.map(r => `
       <div class="item-row">
         <div>
           <b>${r.maquina}</b> - ${r.marca||'Sin marca'} (Turno ${r.turno})<br>
-          <small><b>Brix:</b> ${r.brixAnt} ➔ ${r.brixNue} | <b>pH:</b> ${r.phAnt} ➔ ${r.phNue} | <b>Supervisor:</b> ${getSupervisor(r)}</small>
-          <br><small style="color:#64748b;">📅 <b>Registro:</b> ${r.fechaRegistro || r.timestamp || 'N/A'} ${r.fechaActualizacion ? '| ✏️ <b>Actualizado:</b> '+r.fechaActualizacion : ''}</small>
+          <small><b>Brix:</b> ${r.brixAnt} ➔ ${r.brixNue} | <b>pH:</b> ${r.phAnt} ➔ ${r.phNue} | <b>Supervisor:</b> ${getSupervisor(r)}</small><br>
+          <small style="color:#0284c7; font-weight:bold;">🕒 Capturado a las: ${r.horaRegistro || r.fechaRegistro || 'N/A'}</small>
           ${r.comentarios ? `<br><small style="color:#64748b;"><i>${r.comentarios}</i></small>` : ''}
         </div>
         <div class="item-actions"><button class="btn-edit" onclick="editSolReg('${r.id}')">✏️</button><button class="btn-danger" onclick="delSolReg('${r.id}')">🗑️</button></div>
@@ -972,7 +969,7 @@
       html += `<h3 style="margin-top:15px;">🧪 Registros de Soluble (${reqs.length})</h3>`;
       if(reqs.length === 0) html += `<p style="color:#94a3b8;">Sin datos.</p>`;
       reqs.forEach(r => {
-        html += `<div class="item-row"><div><b>[${normalizeDateStr(r.fecha)}] ${r.maquina}</b> - ${r.marca} | Sup: ${getSupervisor(r)}<br><small>Brix: ${r.brixAnt}➔${r.brixNue} | pH: ${r.phAnt}➔${r.phNue}</small></div></div>`;
+        html += `<div class="item-row"><div><b>[${normalizeDateStr(r.fecha)}] ${r.maquina}</b> - ${r.marca} | Sup: ${getSupervisor(r)}<br><small>Brix: ${r.brixAnt}➔${r.brixNue} | pH: ${r.phAnt}➔${r.phNue} | Hora: ${r.horaRegistro||'N/A'}</small></div></div>`;
       });
     }
 
@@ -1064,7 +1061,6 @@
         let elapsedMin = 0;
         let isAlarmed = false;
 
-        // Calcular minutos transcurridos para registros activos
         if(r.hInicio) {
           let fStr = normalizeDateStr(r.fecha);
           let tStr = formatTimeInput(r.hInicio);
@@ -1077,7 +1073,6 @@
           }
         }
 
-        // Determinar condición de alarma
         if(!r.hFin && r.estatus !== 'Caida' && elapsedMin >= alarmLimitMin) {
           isAlarmed = true;
           hasAlarmTriggered = true;
@@ -1139,13 +1134,22 @@
     if(hasAlarmTriggered) triggerAlarmBeep();
   }
 
-  // --- CONFIGURACIÓN DE ALARMA ADMIN ---
+  // --- CONFIGURACIÓN DE ALARMA Y SONIDO ---
   function guardarConfigAlarma() {
     let val = parseInt(document.getElementById('cfgAlarmMin').value, 10);
     if(isNaN(val) || val <= 0) return alert("Ingresa un número válido de minutos.");
     dbData.alarmMinutes = val;
     alert("Configuración de alarma guardada correctamente.");
     postData({ action: "SAVE_ALARM_CONFIG", alarmMinutes: val });
+  }
+
+  function guardarConfigSonido() {
+    let vol = document.getElementById('cfgSoundVol').value;
+    let freq = document.getElementById('cfgSoundFreq').value;
+    dbData.soundVol = vol;
+    dbData.soundFreq = freq;
+    alert("Ajustes de sonido guardados con éxito.");
+    postData({ action: "SAVE_SOUND_CONFIG", soundVol: vol, soundFreq: freq });
   }
 
   // --- ADMIN CATALOGOS Y USUARIOS ---
@@ -1171,7 +1175,7 @@
     fill('Tecnicos', 'listAdminTecnicos'); 
     fill('Turnos', 'listAdminTurnos');
 
-    // MÁQUINAS (Especial para manejar Máquina + Nave)
+    // MÁQUINAS
     let divM = document.getElementById('listAdminMaquinas');
     if(divM) {
       divM.innerHTML = (dbData.maquinas || []).map(m => {
