@@ -7,7 +7,7 @@
   <style>
     :root { --primary: #0284c7; --admin: #0f172a; --setup: #059669; --bg: #f8fafc; --card: #ffffff; }
     body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1e293b; }
-    .container { max-width: 750px; margin: 0 auto; }
+    .container { max-width: 850px; margin: 0 auto; }
     .tv-container { max-width: 98vw; margin: 0 auto; padding: 10px; }
     .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
     h2, h3 { margin-top: 0; color: var(--primary); }
@@ -20,6 +20,7 @@
     .btn-full { width: 100%; margin-top: 15px; padding: 12px; }
     .btn-admin { background: var(--admin); }
     .btn-setup { background: var(--setup); }
+    .btn-secondary { background: #64748b; color: white; }
     .btn-ws { background: #25d366; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
     .btn-danger { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     .btn-edit { background: #f59e0b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
@@ -32,7 +33,6 @@
 
     .item-row { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 10px 12px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; border-left: 4px solid var(--primary); }
     
-    /* Colores Estatus */
     .st-caida { border-left-color: #ef4444 !important; }
     .st-corriendo { border-left-color: #3b82f6 !important; }
     .st-ajuste { border-left-color: #f97316 !important; }
@@ -95,41 +95,76 @@
       <button type="button" id="btnTabTV" class="tab-btn hidden" onclick="switchTab('tv')">📺 Pizarra TV</button>
     </div>
 
-    <!-- REGISTRO OPERADORES & SOLUBLES (Mantienen formato original) -->
+    <!-- REGISTRO OPERADORES -->
     <div id="formOperadores" class="card hidden">
       <h2>Registro de Operadores</h2>
-      <!-- ... (El formulario HTML de Operadores se mantiene igual al original, lo omito por brevedad pero su JS funciona idéntico) ... -->
       <form onsubmit="guardarOperador(event)">
         <input type="hidden" id="editOpId">
         <label>Máquina</label>
         <input list="listMaquinas" id="opMaquina" required placeholder="Escribe o selecciona máquina...">
-        <label>Fecha del Registro</label><input type="date" id="opFecha" required>
-        <label>Turno</label><select id="opTurno" required></select>
-        <label>Operador Titular</label><input list="listOperadores" id="opTitular" required>
-        <label>Operador que Cubre</label><input list="listOperadores" id="opCubre">
-        <label>Comentarios</label><textarea id="opComentarios" rows="2"></textarea>
+        <label>Fecha del Registro</label>
+        <input type="date" id="opFecha" required>
+        <label>Turno</label>
+        <select id="opTurno" required></select>
+        <label>Operador Titular</label>
+        <input list="listOperadores" id="opTitular" required placeholder="Selecciona operador...">
+        <label>Operador que Cubre (Opcional)</label>
+        <input list="listOperadores" id="opCubre" placeholder="Opcional">
+        <label>Comentarios (Opcional)</label>
+        <textarea id="opComentarios" rows="2" placeholder="Opcional"></textarea>
         <button type="submit" id="btnSaveOp" class="btn-full">Guardar Registro</button>
       </form>
+
+      <div class="filter-box" style="background:#e0f2fe;">
+        <label style="color:#0369a1;">🔍 Filtros Operadores:</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="date" id="filtroFechaOp" onchange="renderHistoriales()">
+          <input type="time" id="filtroHoraOp" onchange="renderHistoriales()" placeholder="Hora (Opc)">
+          <button type="button" class="btn-secondary" onclick="resetFiltrosOp()">Restablecer</button>
+        </div>
+      </div>
+
       <div id="historialOp"></div>
     </div>
 
+    <!-- REGISTRO SOLUBLES -->
     <div id="formSolubles" class="card hidden">
       <h2>Registro de Soluble</h2>
       <form onsubmit="guardarSoluble(event)">
         <input type="hidden" id="editSolId">
-        <label>Máquina</label><input list="listMaquinas" id="solMaquina" required>
-        <label>Fecha del Registro</label><input type="date" id="solFecha" required>
-        <label>Turno</label><select id="solTurno" required></select>
-        <div style="display:flex; gap:5px;"><input type="number" step="0.1" id="solBrixAnt" placeholder="Brix Ant" required><input type="number" step="0.1" id="solBrixNue" placeholder="Brix Nuevo" required></div>
-        <div style="display:flex; gap:5px;"><input type="number" step="0.1" id="solPhAnt" placeholder="pH Ant" required><input type="number" step="0.1" id="solPhNue" placeholder="pH Nuevo" required></div>
-        <label>Marca</label><select id="solMarca" required></select>
-        <label>Comentarios</label><textarea id="solComentarios" rows="2"></textarea>
+        <label>Máquina</label>
+        <input list="listMaquinas" id="solMaquina" required placeholder="Selecciona máquina...">
+        <label>Fecha del Registro</label>
+        <input type="date" id="solFecha" required>
+        <label>Turno</label>
+        <select id="solTurno" required></select>
+        <div style="display:flex; gap:5px; margin-top:5px;">
+          <div style="flex:1;"><label>Brix Ant</label><input type="number" step="0.1" id="solBrixAnt" required></div>
+          <div style="flex:1;"><label>Brix Nuevo</label><input type="number" step="0.1" id="solBrixNue" required></div>
+        </div>
+        <div style="display:flex; gap:5px; margin-top:5px;">
+          <div style="flex:1;"><label>pH Ant</label><input type="number" step="0.1" id="solPhAnt" required></div>
+          <div style="flex:1;"><label>pH Nuevo</label><input type="number" step="0.1" id="solPhNue" required></div>
+        </div>
+        <label>Marca Soluble</label>
+        <select id="solMarca" required></select>
+        <label>Comentarios (Opcional)</label>
+        <textarea id="solComentarios" rows="2" placeholder="Opcional"></textarea>
         <button type="submit" id="btnSaveSol" class="btn-full">Capturar Soluble</button>
       </form>
+
+      <div class="filter-box" style="background:#e0f2fe;">
+        <label style="color:#0369a1;">🔍 Filtros Solubles:</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="date" id="filtroFechaSol" onchange="renderHistoriales()">
+          <button type="button" class="btn-secondary" onclick="resetFiltrosSol()">Restablecer</button>
+        </div>
+      </div>
+
       <div id="historialSol"></div>
     </div>
 
-    <!-- REGISTRO DE MAQUINAS (NUEVO SET UP) -->
+    <!-- REGISTRO DE MAQUINAS (SETUP / AJUSTE / CAIDA / CORRIENDO) -->
     <div id="formSetup" class="card hidden">
       <h2 class="setup-title">Registro de Máquinas</h2>
       <form onsubmit="guardarSetup(event)">
@@ -147,29 +182,30 @@
           <option value="Set up">Set up</option>
         </select>
         
-        <!-- Contenedor Dinámico -->
         <div id="regDinamico" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px solid #e2e8f0;">
-          
           <div class="g-turno hidden"><label>Turno</label><select id="regTurno"></select></div>
           <div class="g-item hidden"><label>Ítem</label><input list="listItems" id="regItem" placeholder="Buscar ítem..."></div>
           <div class="g-tecnico hidden"><label>Técnico</label><input list="listTecnicos" id="regTecnico" placeholder="Técnico..."></div>
-          <div class="g-operador hidden"><label>Operador</label><input list="listOperadores" id="regOperador"></div>
-          <div class="g-opCubre hidden"><label>Operador que cubre</label><input list="listOperadores" id="regOpCubre" placeholder="Opcional"></div>
+          <div class="g-operador hidden"><label>Operador Titular</label><input list="listOperadores" id="regOperador"></div>
+          <div class="g-opCubre hidden"><label>Operador que cubre (Opcional)</label><input list="listOperadores" id="regOpCubre" placeholder="Opcional"></div>
           
           <div class="g-horas hidden" style="display:flex; gap:10px;">
-            <div style="flex:1;"><label>Hora Inicio</label><input type="time" id="regHInicio" onchange="calcTiempoReg()"></div>
-            <div style="flex:1;"><label>Hora Fin (Opc.)</label><input type="time" id="regHFin" onchange="calcTiempoReg()"></div>
+            <div style="flex:1;"><label>Hora Inicio</label><input type="time" id="regHInicio" oninput="calcTiempoReg()"></div>
+            <div style="flex:1;"><label>Hora Fin (Opcional)</label><input type="time" id="regHFin" oninput="calcTiempoReg()"></div>
           </div>
           
-          <div class="g-tiempo hidden"><label>Duración</label><input type="text" id="regTiempo" readonly style="background:#f1f5f9;"></div>
+          <div class="g-tiempo hidden">
+            <label>Duración <small style="color:#059669; font-weight:normal;">(Se calcula automáticamente)</small></label>
+            <input type="text" id="regTiempo" readonly style="background:#f1f5f9;" placeholder="Se calcula automáticamente">
+          </div>
           
           <div class="g-piezas hidden" style="display:flex; gap:5px;">
-            <div style="flex:1;"><label>Pz Plan</label><input type="number" id="regPzPlan"></div>
-            <div style="flex:1;"><label>Pz Real</label><input type="number" id="regPzReal"></div>
-            <div style="flex:1;"><label>Delta</label><input type="number" id="regPzDelta"></div>
+            <div style="flex:1;"><label>Pz Plan</label><input type="number" id="regPzPlan" oninput="calcDeltaReg()"></div>
+            <div style="flex:1;"><label>Pz Real</label><input type="number" id="regPzReal" oninput="calcDeltaReg()"></div>
+            <div style="flex:1;"><label>Delta (Faltantes)</label><input type="number" id="regPzDelta" readonly style="background:#f1f5f9;"></div>
           </div>
 
-          <div class="g-comentarios"><label>Comentarios</label><textarea id="regComentarios" rows="2"></textarea></div>
+          <div class="g-comentarios"><label>Comentarios (Opcional)</label><textarea id="regComentarios" rows="2" placeholder="Opcional"></textarea></div>
         </div>
 
         <button type="submit" id="btnSaveReg" class="btn-full btn-setup hidden">Guardar Registro</button>
@@ -177,15 +213,16 @@
 
       <div class="filter-box" style="background:#d1fae5;">
         <label style="color:#047857;">🔍 Filtros de Visualización / Reporte:</label>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
           <input type="date" id="filtroFechaMaq" onchange="renderHistoriales()">
           <input type="time" id="filtroHoraMaq" onchange="renderHistoriales()" placeholder="Hora Ini (Opc)">
+          <button type="button" class="btn-secondary" onclick="resetFiltrosSetup()">Restablecer Filtrado</button>
         </div>
         <div class="chk-group" style="margin-top:10px;">
-          <label><input type="checkbox" id="chkCopyCaida" checked> Caídas</label>
-          <label><input type="checkbox" id="chkCopyCorr" checked> Corriendo</label>
-          <label><input type="checkbox" id="chkCopyAjuste" checked> Ajuste</label>
-          <label><input type="checkbox" id="chkCopySetup" checked> Set up</label>
+          <label><input type="checkbox" id="chkCopyCaida" checked onchange="renderHistoriales()"> Caídas</label>
+          <label><input type="checkbox" id="chkCopyCorr" checked onchange="renderHistoriales()"> Corriendo</label>
+          <label><input type="checkbox" id="chkCopyAjuste" checked onchange="renderHistoriales()"> Ajuste</label>
+          <label><input type="checkbox" id="chkCopySetup" checked onchange="renderHistoriales()"> Set up</label>
         </div>
         <div style="display:flex; gap:10px; margin-top:10px;">
           <button type="button" class="btn-ws" onclick="copiarWhatsApp()">📲 Copiar a WhatsApp</button>
@@ -197,19 +234,56 @@
 
     <!-- HISTORIAL GENERAL (ADMIN) -->
     <div id="panelAdminHistorial" class="card hidden">
-      <h2 style="color: var(--admin)">📊 Consulta General</h2>
+      <h2 style="color: var(--admin)">📊 Consulta Historial General</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; background:#f1f5f9; padding:10px; border-radius:8px;">
+        <div style="flex:1; min-width:150px;">
+          <label>Filtrar por Supervisor</label>
+          <select id="histFiltroSup" onchange="renderHistorialGeneralAdmin()"></select>
+        </div>
+        <div style="flex:1; min-width:150px;">
+          <label>Tipo de Registro</label>
+          <select id="histFiltroTipo" onchange="renderHistorialGeneralAdmin()">
+            <option value="TODOS">Todos los tipos</option>
+            <option value="MAQUINAS">Máquinas (Setup/Caída/Ajuste/Corr)</option>
+            <option value="OPERADORES">Operadores</option>
+            <option value="SOLUBLES">Solubles</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:150px;">
+          <label>Fecha</label>
+          <input type="date" id="histFiltroFecha" onchange="renderHistorialGeneralAdmin()">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button type="button" class="btn-secondary" onclick="resetFiltrosHistorialGral()">Restablecer</button>
+        </div>
+      </div>
       <div id="adminHistSetup"></div>
     </div>
 
-    <!-- ADMIN CATALOGOS -->
+    <!-- ADMIN CATALOGOS Y USUARIOS -->
     <div id="panelAdmin" class="card hidden">
-      <h2 style="color: var(--admin)">Gestión de Catálogos (Admin)</h2>
+      <h2 style="color: var(--admin)">Gestión de Catálogos y Usuarios (Admin)</h2>
       
-      <h3>Naves</h3>
-      <div style="display:flex; gap:5px;"><input type="text" id="addNave" placeholder="Ej: Delta"><button class="btn-admin" onclick="addCat('Naves', 'addNave', 'val1')" style="width:120px;">Agregar</button></div>
+      <!-- USUARIOS -->
+      <h3>👥 Usuarios y Accesos</h3>
+      <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;">
+        <input type="text" id="addUsrName" placeholder="Usuario / Nombre" style="flex:1;">
+        <input type="text" id="addUsrPass" placeholder="Contraseña" style="flex:1;">
+        <select id="addUsrPerm" style="flex:1;">
+          <option value="Supervisor">Supervisor</option>
+          <option value="Admin">Admin</option>
+        </select>
+        <button class="btn-admin" onclick="addUsuario()" style="width:120px;">Agregar</button>
+      </div>
+      <div id="listAdminUsuarios"></div><hr>
+
+      <!-- NAVES -->
+      <h3>🏢 Naves</h3>
+      <div style="display:flex; gap:5px;"><input type="text" id="addNave" placeholder="Ej: Nave 1"><button class="btn-admin" onclick="addCat('Naves', 'addNave')" style="width:120px;">Agregar</button></div>
       <div id="listAdminNaves"></div><hr>
 
-      <h3>Máquinas</h3>
+      <!-- MAQUINAS -->
+      <h3>🏭 Máquinas</h3>
       <div style="display:flex; gap:5px;">
         <input type="text" id="addMaq" placeholder="Ej: CM26">
         <select id="addMaqNave" style="width:auto;"></select>
@@ -217,11 +291,16 @@
       </div>
       <div id="listAdminMaquinas"></div><hr>
       
-      <!-- Se mantienen listados HTML para Operadores, Items, Tecnicos, Turnos, Marcas como el original... -->
-      <h3>Operadores</h3><div style="display:flex; gap:5px;"><input type="text" id="addOp"><button class="btn-admin" onclick="addCat('Operadores', 'addOp')">Agregar</button></div><div id="listAdminOperadores"></div>
-      <h3>Ítems</h3><div style="display:flex; gap:5px;"><input type="text" id="addItem"><button class="btn-admin" onclick="addCat('Items', 'addItem')">Agregar</button></div><div id="listAdminItems"></div>
-      <h3>Técnicos</h3><div style="display:flex; gap:5px;"><input type="text" id="addTecnico"><button class="btn-admin" onclick="addCat('Tecnicos', 'addTecnico')">Agregar</button></div><div id="listAdminTecnicos"></div>
-      <h3>Turnos</h3><div style="display:flex; gap:5px;"><input type="text" id="addTurno"><button class="btn-admin" onclick="addCat('Turnos', 'addTurno')">Agregar</button></div><div id="listAdminTurnos"></div>
+      <!-- MARCAS SOLUBLE -->
+      <h3>🧪 Marcas de Soluble</h3>
+      <div style="display:flex; gap:5px;"><input type="text" id="addMarca" placeholder="Ej: Fuchs"><button class="btn-admin" onclick="addCat('Marcas', 'addMarca')" style="width:120px;">Agregar</button></div>
+      <div id="listAdminMarcas"></div><hr>
+
+      <!-- OTROS CATALOGOS -->
+      <h3>👷 Operadores</h3><div style="display:flex; gap:5px;"><input type="text" id="addOp"><button class="btn-admin" onclick="addCat('Operadores', 'addOp')">Agregar</button></div><div id="listAdminOperadores"></div><hr>
+      <h3>📦 Ítems</h3><div style="display:flex; gap:5px;"><input type="text" id="addItem"><button class="btn-admin" onclick="addCat('Items', 'addItem')">Agregar</button></div><div id="listAdminItems"></div><hr>
+      <h3>🔧 Técnicos</h3><div style="display:flex; gap:5px;"><input type="text" id="addTecnico"><button class="btn-admin" onclick="addCat('Tecnicos', 'addTecnico')">Agregar</button></div><div id="listAdminTecnicos"></div><hr>
+      <h3>🕒 Turnos</h3><div style="display:flex; gap:5px;"><input type="text" id="addTurno"><button class="btn-admin" onclick="addCat('Turnos', 'addTurno')">Agregar</button></div><div id="listAdminTurnos"></div>
     </div>
   </div>
 </div>
@@ -278,12 +357,10 @@
     return str;
   }
 
-  // AUDITORÍA: Obtener registros activos
   function getActiveMaquinasLogs() {
     let map = {};
     (dbData.registrosSetup || []).forEach(r => { map[r.id] = r; });
     let acts = Object.values(map).filter(r => r.actionType !== 'DELETE');
-    // ORDENAR POR MÁQUINA ASCENDENTE (Ej: CM1, CM2, CM10)
     return acts.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true}));
   }
 
@@ -298,45 +375,72 @@
   }
 
   function renderDataLists() {
-    // Fill basic lists
-    let maqs = (dbData.maquinas || []).map(m => m.maquina || m.Maquina || m.col1 || m);
+    let maqs = (dbData.maquinas || []).map(m => typeof m === 'object' ? (m.maquina || m.col1) : m);
     let lM = document.getElementById('listMaquinas'); lM.innerHTML = ''; maqs.forEach(m => lM.innerHTML += `<option value="${m}">`);
     
     let ops = document.getElementById('listOperadores'); ops.innerHTML=''; (dbData.operadores||[]).forEach(i => ops.innerHTML += `<option value="${i}">`);
     let itm = document.getElementById('listItems'); itm.innerHTML=''; (dbData.items||[]).forEach(i => itm.innerHTML += `<option value="${i}">`);
     let tec = document.getElementById('listTecnicos'); tec.innerHTML=''; (dbData.tecnicos||[]).forEach(i => tec.innerHTML += `<option value="${i}">`);
     
-    let fillS = (id, list) => { let s=document.getElementById(id); if(s){ s.innerHTML='<option value="">Seleccione...</option>'; list.forEach(i=>s.innerHTML+=`<option value="${i}">${i}</option>`); } };
-    fillS('opTurno', dbData.turnos); fillS('solTurno', dbData.turnos); fillS('regTurno', dbData.turnos); fillS('addMaqNave', dbData.naves);
+    let fillS = (id, list) => { 
+      let s=document.getElementById(id); 
+      if(s){ 
+        s.innerHTML='<option value="">Seleccione...</option>'; 
+        (list||[]).forEach(i=>s.innerHTML+=`<option value="${i}">${i}</option>`); 
+      } 
+    };
+    
+    fillS('opTurno', dbData.turnos); 
+    fillS('solTurno', dbData.turnos); 
+    fillS('regTurno', dbData.turnos); 
+    fillS('solMarca', dbData.marcas); 
+    fillS('addMaqNave', dbData.naves);
 
-    if(isAdmin) renderAdminLists();
+    renderAdminLists();
     renderHistoriales();
   }
 
-  async function init() { await syncData(); document.querySelectorAll('input[type="date"]').forEach(i => i.value = getTodayString()); }
+  async function init() { 
+    await syncData(); 
+    document.querySelectorAll('input[type="date"]').forEach(i => i.value = getTodayString()); 
+  }
   document.addEventListener("DOMContentLoaded", init);
 
   function iniciarSesion() {
     let u = document.getElementById('loginUser').value.trim();
     let p = document.getElementById('loginPass').value.trim();
-    let val = dbData.usuarios.find(x => x.user.toLowerCase() === u.toLowerCase() && x.pass === p);
+    let val = (dbData.usuarios||[]).find(x => (x.user||'').toLowerCase() === u.toLowerCase() && x.pass === p);
     if(val) {
-      currentUser = val.user; isAdmin = false;
-      document.getElementById('userDisp').textContent = `Supervisor: ${currentUser}`;
-      document.getElementById('secLogin').classList.add('hidden'); document.getElementById('secApp').classList.remove('hidden');
-      document.getElementById('btnTabAdmin').classList.add('hidden'); document.getElementById('btnTabAdminHist').classList.add('hidden');
-      document.getElementById('btnTabTV').classList.add('hidden');
-      document.getElementById('btnTabOp').classList.remove('hidden'); document.getElementById('btnTabSol').classList.remove('hidden'); document.getElementById('btnTabSet').classList.remove('hidden');
+      currentUser = val.user; 
+      isAdmin = (val.permisos === 'Admin');
+      document.getElementById('userDisp').textContent = `Usuario: ${currentUser} (${val.permisos||'Supervisor'})`;
+      document.getElementById('secLogin').classList.add('hidden'); 
+      document.getElementById('secApp').classList.remove('hidden');
+      
+      document.getElementById('btnTabOp').classList.remove('hidden'); 
+      document.getElementById('btnTabSol').classList.remove('hidden'); 
+      document.getElementById('btnTabSet').classList.remove('hidden');
+      
+      if(isAdmin) {
+        document.getElementById('btnTabAdmin').classList.remove('hidden'); 
+        document.getElementById('btnTabAdminHist').classList.remove('hidden');
+        document.getElementById('btnTabTV').classList.remove('hidden');
+      } else {
+        document.getElementById('btnTabAdmin').classList.add('hidden'); 
+        document.getElementById('btnTabAdminHist').classList.add('hidden');
+        document.getElementById('btnTabTV').classList.add('hidden');
+      }
       switchTab('setup');
-    } else alert("Datos incorrectos");
+    } else alert("Usuario o contraseña incorrectos");
   }
 
   function accesoAdminDirecto() {
-    if(prompt("Clave:") === "1234") {
+    if(prompt("Clave Administrador:") === "1234") {
       currentUser = "Admin"; isAdmin = true;
       document.getElementById('userDisp').textContent = `Rol: Admin`;
       document.getElementById('secLogin').classList.add('hidden'); document.getElementById('secApp').classList.remove('hidden');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('hidden')); switchTab('adminHist');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('hidden')); 
+      switchTab('adminHist');
     }
   }
 
@@ -355,7 +459,7 @@
     if(t==='op'){ document.getElementById('btnTabOp').classList.add('active'); document.getElementById('formOperadores').classList.remove('hidden'); }
     else if(t==='sol'){ document.getElementById('btnTabSol').classList.add('active'); document.getElementById('formSolubles').classList.remove('hidden'); }
     else if(t==='setup'){ document.getElementById('btnTabSet').classList.add('active'); document.getElementById('formSetup').classList.remove('hidden'); }
-    else if(t==='adminHist'){ document.getElementById('btnTabAdminHist').classList.add('admin-active'); document.getElementById('panelAdminHistorial').classList.remove('hidden'); }
+    else if(t==='adminHist'){ document.getElementById('btnTabAdminHist').classList.add('admin-active'); document.getElementById('panelAdminHistorial').classList.remove('hidden'); renderHistorialGeneralAdmin(); }
     else if(t==='admin'){ document.getElementById('btnTabAdmin').classList.add('admin-active'); document.getElementById('panelAdmin').classList.remove('hidden'); }
     renderHistoriales();
   }
@@ -366,7 +470,122 @@
     document.body.style.background = "var(--bg)";
   }
 
-  // --- LÓGICA FORMULARIO REGISTRO MAQUINAS ---
+  // --- FORMULARIO OPERADORES ---
+  function guardarOperador(e) {
+    e.preventDefault();
+    let id = document.getElementById('editOpId').value;
+    let pld = {
+      action: id ? "EDIT_REGISTRO_OP" : "ADD_REGISTRO_OP",
+      id: id || ("OP_" + new Date().getTime()),
+      maquina: document.getElementById('opMaquina').value,
+      fecha: document.getElementById('opFecha').value,
+      turno: document.getElementById('opTurno').value,
+      operador: document.getElementById('opTitular').value,
+      opCubre: document.getElementById('opCubre').value,
+      comentarios: document.getElementById('opComentarios').value,
+      usuario: currentUser
+    };
+
+    if(id) {
+      let idx = dbData.registrosOperadores.findIndex(x => x.id === id);
+      if(idx !== -1) dbData.registrosOperadores[idx] = pld;
+    } else {
+      dbData.registrosOperadores.push(pld);
+    }
+
+    renderHistoriales();
+    e.target.reset();
+    document.getElementById('editOpId').value = '';
+    document.getElementById('opFecha').value = getTodayString();
+    postData(pld);
+  }
+
+  function editOpReg(id) {
+    let r = (dbData.registrosOperadores||[]).find(x => x.id === id); if(!r) return;
+    document.getElementById('editOpId').value = r.id;
+    document.getElementById('opMaquina').value = r.maquina;
+    document.getElementById('opFecha').value = normalizeDateStr(r.fecha);
+    document.getElementById('opTurno').value = r.turno;
+    document.getElementById('opTitular').value = r.operador;
+    document.getElementById('opCubre').value = r.opCubre||'';
+    document.getElementById('opComentarios').value = r.comentarios||'';
+  }
+
+  function delOpReg(id) {
+    if(confirm("¿Eliminar registro de operador?")) {
+      dbData.registrosOperadores = dbData.registrosOperadores.filter(x => x.id !== id);
+      renderHistoriales();
+      postData({ action: "DELETE_REGISTRO_OP", id: id });
+    }
+  }
+
+  function resetFiltrosOp() {
+    document.getElementById('filtroFechaOp').value = getTodayString();
+    document.getElementById('filtroHoraOp').value = "";
+    renderHistoriales();
+  }
+
+  // --- FORMULARIO SOLUBLES ---
+  function guardarSoluble(e) {
+    e.preventDefault();
+    let id = document.getElementById('editSolId').value;
+    let pld = {
+      action: id ? "EDIT_REGISTRO_SOL" : "ADD_REGISTRO_SOL",
+      id: id || ("SOL_" + new Date().getTime()),
+      maquina: document.getElementById('solMaquina').value,
+      fecha: document.getElementById('solFecha').value,
+      turno: document.getElementById('solTurno').value,
+      brixAnt: document.getElementById('solBrixAnt').value,
+      brixNue: document.getElementById('solBrixNue').value,
+      phAnt: document.getElementById('solPhAnt').value,
+      phNue: document.getElementById('solPhNue').value,
+      marca: document.getElementById('solMarca').value,
+      comentarios: document.getElementById('solComentarios').value,
+      usuario: currentUser
+    };
+
+    if(id) {
+      let idx = dbData.registrosSolubles.findIndex(x => x.id === id);
+      if(idx !== -1) dbData.registrosSolubles[idx] = pld;
+    } else {
+      dbData.registrosSolubles.push(pld);
+    }
+
+    renderHistoriales();
+    e.target.reset();
+    document.getElementById('editSolId').value = '';
+    document.getElementById('solFecha').value = getTodayString();
+    postData(pld);
+  }
+
+  function editSolReg(id) {
+    let r = (dbData.registrosSolubles||[]).find(x => x.id === id); if(!r) return;
+    document.getElementById('editSolId').value = r.id;
+    document.getElementById('solMaquina').value = r.maquina;
+    document.getElementById('solFecha').value = normalizeDateStr(r.fecha);
+    document.getElementById('solTurno').value = r.turno;
+    document.getElementById('solBrixAnt').value = r.brixAnt;
+    document.getElementById('solBrixNue').value = r.brixNue;
+    document.getElementById('solPhAnt').value = r.phAnt;
+    document.getElementById('solPhNue').value = r.phNue;
+    document.getElementById('solMarca').value = r.marca;
+    document.getElementById('solComentarios').value = r.comentarios||'';
+  }
+
+  function delSolReg(id) {
+    if(confirm("¿Eliminar registro de soluble?")) {
+      dbData.registrosSolubles = dbData.registrosSolubles.filter(x => x.id !== id);
+      renderHistoriales();
+      postData({ action: "DELETE_REGISTRO_SOL", id: id });
+    }
+  }
+
+  function resetFiltrosSol() {
+    document.getElementById('filtroFechaSol').value = getTodayString();
+    renderHistoriales();
+  }
+
+  // --- FORMULARIO REGISTRO MÁQUINAS ---
   function toggleRegCampos() {
     let est = document.getElementById('regEstatus').value;
     let d = document.getElementById('regDinamico');
@@ -396,6 +615,22 @@
     } else document.getElementById('regTiempo').value = "";
   }
 
+  function calcDeltaReg() {
+    let plan = parseInt(document.getElementById('regPzPlan').value, 10) || 0;
+    let real = parseInt(document.getElementById('regPzReal').value, 10) || 0;
+    document.getElementById('regPzDelta').value = plan - real;
+  }
+
+  function resetFiltrosSetup() {
+    document.getElementById('filtroFechaMaq').value = getTodayString();
+    document.getElementById('filtroHoraMaq').value = "";
+    document.getElementById('chkCopyCaida').checked = true;
+    document.getElementById('chkCopyCorr').checked = true;
+    document.getElementById('chkCopyAjuste').checked = true;
+    document.getElementById('chkCopySetup').checked = true;
+    renderHistoriales();
+  }
+
   function guardarSetup(e) {
     e.preventDefault();
     let id = document.getElementById('regId').value;
@@ -412,14 +647,13 @@
       comentarios: document.getElementById('regComentarios').value, usuario: currentUser, 
       actionType: action.split('_')[0]
     };
-    dbData.registrosSetup.push(pld); // Simular el append
+    dbData.registrosSetup.push(pld);
     document.getElementById('filtroFechaMaq').value = pld.fecha;
     renderHistoriales(); e.target.reset(); document.getElementById('regId').value = ''; 
     document.getElementById('regFecha').value = getTodayString(); toggleRegCampos();
     postData(pld);
   }
 
-  // Eliminar añade un registro DELETE
   function delMaqReg(id) {
     if(confirm("¿Borrar este registro?")) {
       let pld = { action: "DELETE_REGISTRO_SETUP", id: id, actionType: "DELETE", timestamp: new Date().toLocaleString() };
@@ -442,19 +676,21 @@
     window.scrollTo({top: 0});
   }
 
+  // --- RENDERING HISTORIALES ---
   function renderHistoriales() {
+    // 1. Historial Setup / Máquinas
     let act = getActiveMaquinasLogs();
-    let fDate = document.getElementById('filtroFechaMaq') ? document.getElementById('filtroFechaMaq').value : getTodayString();
-    let fTime = document.getElementById('filtroHoraMaq') ? document.getElementById('filtroHoraMaq').value : "";
+    let fDateM = document.getElementById('filtroFechaMaq') ? document.getElementById('filtroFechaMaq').value : getTodayString();
+    let fTimeM = document.getElementById('filtroHoraMaq') ? document.getElementById('filtroHoraMaq').value : "";
     
-    let fil = act.filter(r => normalizeDateStr(r.fecha) === fDate && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
-    if(fTime) fil = fil.filter(r => (r.hInicio||"").includes(fTime));
+    let filM = act.filter(r => normalizeDateStr(r.fecha) === fDateM && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
+    if(fTimeM) filM = filM.filter(r => (r.hInicio||"").includes(fTimeM));
 
-    let html = "";
+    let htmlM = "";
     ['Caida','Corriendo','Ajuste','Set up'].forEach(st => {
-      let rs = fil.filter(x => x.estatus === st);
+      let rs = filM.filter(x => x.estatus === st);
       if(rs.length > 0) {
-        html += `<h3 style="margin-top:15px; border-bottom:1px solid #ccc;">${st.toUpperCase()}</h3>`;
+        htmlM += `<h3 style="margin-top:15px; border-bottom:1px solid #ccc;">${st.toUpperCase()}</h3>`;
         rs.forEach(r => {
           let term = r.hFin ? true : false;
           let cls = st==='Caida'?'st-caida': st==='Corriendo'?'st-corriendo': st==='Ajuste'?'st-ajuste':'st-setup';
@@ -462,11 +698,11 @@
           
           let det = `<small><b>Turno:</b> ${r.turno} | <b>Supervisor:</b> ${getSupervisor(r)}</small><br>`;
           if(st !== 'Caida') det += `<small><b>Item:</b> ${r.item} | <b>Ini:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${term ? formatHora(r.hFin) : '<i>Pendiente</i>'}</small><br>`;
-          if(st === 'Corriendo') det += `<small><b>Op:</b> ${r.operador} ${r.opCubre?`(Cubre:${r.opCubre})`:''} | <b>Pzas:</b> ${r.piezasPlan}/${r.piezasReal}</small><br>`;
-          if(st === 'Ajuste' || st === 'Set up') det += `<small><b>Tec:</b> ${r.tecnico} | <b>T:</b> ${r.tiempo||'-'}</small><br>`;
+          if(st === 'Corriendo') det += `<small><b>Op:</b> ${r.operador} ${r.opCubre?`(Cubre:${r.opCubre})`:''} | <b>Plan:</b> ${r.piezasPlan||0} | <b>Real:</b> ${r.piezasReal||0} | <b>Delta (Falta):</b> ${r.piezasDelta||0}</small><br>`;
+          if(st === 'Ajuste' || st === 'Set up') det += `<small><b>Tec:</b> ${r.tecnico} | <b>Duración:</b> ${r.tiempo||'-'}</small><br>`;
           if(r.comentarios) det += `<small style="color:#64748b;"><i>${r.comentarios}</i></small>`;
 
-          html += `
+          htmlM += `
             <div class="item-row ${cls}">
               <div><b>${r.maquina}</b> - ${r.estatus} ${term && st!=='Caida' ? '✅' : '⏳'}<br>${det}</div>
               <div class="item-actions flex-col"><button class="btn-edit" onclick="editMaqReg('${r.id}')">✏️</button><button class="btn-danger" onclick="delMaqReg('${r.id}')">🗑️</button></div>
@@ -474,14 +710,106 @@
         });
       }
     });
-    
-    let div = document.getElementById('historialSetup');
-    if(div) div.innerHTML = html || '<p style="color:#94a3b8;">Sin registros.</p>';
+    let divM = document.getElementById('historialSetup');
+    if(divM) divM.innerHTML = htmlM || '<p style="color:#94a3b8;">Sin registros para esta fecha.</p>';
 
-    if(isAdmin) {
-      let divA = document.getElementById('adminHistSetup');
-      if(divA) divA.innerHTML = html || 'Sin registros';
+    // 2. Historial Operadores
+    let fDateOp = document.getElementById('filtroFechaOp') ? document.getElementById('filtroFechaOp').value : getTodayString();
+    let filOp = (dbData.registrosOperadores||[]).filter(r => normalizeDateStr(r.fecha) === fDateOp && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
+    let htmlOp = (filOp.length > 0) ? filOp.map(r => `
+      <div class="item-row">
+        <div>
+          <b>${r.maquina}</b> - Turno ${r.turno}<br>
+          <small><b>Titular:</b> ${r.operador} ${r.opCubre ? '| <b>Cubre:</b> '+r.opCubre : ''} | <b>Supervisor:</b> ${getSupervisor(r)}</small>
+          ${r.comentarios ? `<br><small style="color:#64748b;"><i>${r.comentarios}</i></small>` : ''}
+        </div>
+        <div class="item-actions"><button class="btn-edit" onclick="editOpReg('${r.id}')">✏️</button><button class="btn-danger" onclick="delOpReg('${r.id}')">🗑️</button></div>
+      </div>`).join('') : '<p style="color:#94a3b8;">Sin registros de operadores.</p>';
+    let divOp = document.getElementById('historialOp'); if(divOp) divOp.innerHTML = htmlOp;
+
+    // 3. Historial Solubles
+    let fDateSol = document.getElementById('filtroFechaSol') ? document.getElementById('filtroFechaSol').value : getTodayString();
+    let filSol = (dbData.registrosSolubles||[]).filter(r => normalizeDateStr(r.fecha) === fDateSol && (isAdmin || getSupervisor(r).toLowerCase() === currentUser.toLowerCase()));
+    let htmlSol = (filSol.length > 0) ? filSol.map(r => `
+      <div class="item-row">
+        <div>
+          <b>${r.maquina}</b> - ${r.marca||'Sin marca'} (Turno ${r.turno})<br>
+          <small><b>Brix:</b> ${r.brixAnt} ➔ ${r.brixNue} | <b>pH:</b> ${r.phAnt} ➔ ${r.phNue} | <b>Supervisor:</b> ${getSupervisor(r)}</small>
+          ${r.comentarios ? `<br><small style="color:#64748b;"><i>${r.comentarios}</i></small>` : ''}
+        </div>
+        <div class="item-actions"><button class="btn-edit" onclick="editSolReg('${r.id}')">✏️</button><button class="btn-danger" onclick="delSolReg('${r.id}')">🗑️</button></div>
+      </div>`).join('') : '<p style="color:#94a3b8;">Sin registros de soluble.</p>';
+    let divSol = document.getElementById('historialSol'); if(divSol) divSol.innerHTML = htmlSol;
+  }
+
+  // --- HISTORIAL GENERAL ADMIN ---
+  function renderHistorialGeneralAdmin() {
+    if(!isAdmin) return;
+    
+    // Poblar dropdown de supervisores si está vacío
+    let selSup = document.getElementById('histFiltroSup');
+    if(selSup && selSup.options.length <= 1) {
+      selSup.innerHTML = '<option value="TODOS">Todos los supervisores</option>';
+      let sups = new Set();
+      (dbData.usuarios||[]).forEach(u => sups.add(u.user));
+      (dbData.registrosSetup||[]).forEach(r => sups.add(getSupervisor(r)));
+      sups.forEach(s => selSup.innerHTML += `<option value="${s}">${s}</option>`);
     }
+
+    let filterSup = selSup ? selSup.value : "TODOS";
+    let filterTipo = document.getElementById('histFiltroTipo') ? document.getElementById('histFiltroTipo').value : "TODOS";
+    let filterFecha = document.getElementById('histFiltroFecha') ? document.getElementById('histFiltroFecha').value : "";
+
+    let html = "";
+
+    // Máquinas
+    if(filterTipo === "TODOS" || filterTipo === "MAQUINAS") {
+      let reqs = getActiveMaquinasLogs();
+      if(filterFecha) reqs = reqs.filter(r => normalizeDateStr(r.fecha) === filterFecha);
+      if(filterSup !== "TODOS") reqs = reqs.filter(r => getSupervisor(r).toLowerCase() === filterSup.toLowerCase());
+      
+      html += `<h3>🏭 Registros de Máquinas / Setup (${reqs.length})</h3>`;
+      if(reqs.length === 0) html += `<p style="color:#94a3b8;">Sin datos.</p>`;
+      reqs.forEach(r => {
+        html += `<div class="item-row"><div><b>[${normalizeDateStr(r.fecha)}] ${r.maquina}</b> (${r.estatus}) | Sup: ${getSupervisor(r)}<br><small>Item: ${r.item||'-'} | Turno: ${r.turno} | H.Ini: ${formatHora(r.hInicio)} H.Fin: ${formatHora(r.hFin)} | Duración: ${r.tiempo||'-'}</small></div></div>`;
+      });
+    }
+
+    // Operadores
+    if(filterTipo === "TODOS" || filterTipo === "OPERADORES") {
+      let reqs = dbData.registrosOperadores || [];
+      if(filterFecha) reqs = reqs.filter(r => normalizeDateStr(r.fecha) === filterFecha);
+      if(filterSup !== "TODOS") reqs = reqs.filter(r => getSupervisor(r).toLowerCase() === filterSup.toLowerCase());
+
+      html += `<h3 style="margin-top:15px;">👷 Registros de Operadores (${reqs.length})</h3>`;
+      if(reqs.length === 0) html += `<p style="color:#94a3b8;">Sin datos.</p>`;
+      reqs.forEach(r => {
+        html += `<div class="item-row"><div><b>[${normalizeDateStr(r.fecha)}] ${r.maquina}</b> - Turno ${r.turno} | Sup: ${getSupervisor(r)}<br><small>Titular: ${r.operador} ${r.opCubre?'| Cubre: '+r.opCubre:''}</small></div></div>`;
+      });
+    }
+
+    // Solubles
+    if(filterTipo === "TODOS" || filterTipo === "SOLUBLES") {
+      let reqs = dbData.registrosSolubles || [];
+      if(filterFecha) reqs = reqs.filter(r => normalizeDateStr(r.fecha) === filterFecha);
+      if(filterSup !== "TODOS") reqs = reqs.filter(r => getSupervisor(r).toLowerCase() === filterSup.toLowerCase());
+
+      html += `<h3 style="margin-top:15px;">🧪 Registros de Soluble (${reqs.length})</h3>`;
+      if(reqs.length === 0) html += `<p style="color:#94a3b8;">Sin datos.</p>`;
+      reqs.forEach(r => {
+        html += `<div class="item-row"><div><b>[${normalizeDateStr(r.fecha)}] ${r.maquina}</b> - ${r.marca} | Sup: ${getSupervisor(r)}<br><small>Brix: ${r.brixAnt}➔${r.brixNue} | pH: ${r.phAnt}➔${r.phNue}</small></div></div>`;
+      });
+    }
+
+    let div = document.getElementById('adminHistSetup');
+    if(div) div.innerHTML = html;
+  }
+
+  function resetFiltrosHistorialGral() {
+    document.getElementById('histFiltroSup').value = "TODOS";
+    document.getElementById('histFiltroTipo').value = "TODOS";
+    document.getElementById('histFiltroFecha').value = "";
+    renderHistorialGeneralAdmin();
   }
 
   // --- WHATSAPP COPIAR ---
@@ -509,6 +837,7 @@
           let term = r.hFin ? " (Terminado)" : " (Pendiente)";
           txt += `• *M:* ${r.maquina} ${st!=='Caida'?term:''}\n`;
           if(st !== 'Caida') txt += `  Item: ${r.item} | H: ${formatHora(r.hInicio)} a ${r.hFin?formatHora(r.hFin):'--'}\n`;
+          if(st === 'Corriendo') txt += `  Pzas Plan: ${r.piezasPlan||0} | Real: ${r.piezasReal||0} | Delta: ${r.piezasDelta||0}\n`;
           if(r.tecnico) txt += `  Tec: ${r.tecnico}\n`;
           if(r.comentarios) txt += `  Obs: ${r.comentarios}\n`;
         });
@@ -525,14 +854,12 @@
     let fDate = document.getElementById('tvFilterFecha').value;
     let act = getActiveMaquinasLogs().filter(r => normalizeDateStr(r.fecha) === fDate);
     
-    // Agrupar maquinas con su nave desde el catálogo
     let maqNaveMap = {};
     (dbData.maquinas || []).forEach(m => {
        if(typeof m === 'object') maqNaveMap[m.maquina || m.col1] = m.nave || m.col2 || "Sin Nave";
        else maqNaveMap[m] = "Sin Nave";
     });
 
-    // Separar registros por nave
     let navesData = {};
     (dbData.naves || []).forEach(n => navesData[n] = []);
     navesData["Sin Nave"] = [];
@@ -582,28 +909,46 @@
     document.getElementById('tvBoard').innerHTML = bHtml || '<div style="color:white; padding:20px;">No hay registros para esta fecha.</div>';
   }
 
-  // --- ADMIN CATALOGOS ---
+  // --- ADMIN CATALOGOS Y USUARIOS ---
   function renderAdminLists() {
     let fill = (cat, id) => {
       let div = document.getElementById(id);
       if(!div) return;
       if(cat==='Maquinas') {
         div.innerHTML = (dbData.maquinas||[]).map(m => {
-           let n=m.maquina||m.col1, nv=m.nave||m.col2||'';
+           let n = typeof m==='object' ? (m.maquina||m.col1) : m;
+           let nv = typeof m==='object' ? (m.nave||m.col2||'') : '';
            return `<div class="item-row"><span>${n} <small>(${nv})</small></span><button class="btn-danger" onclick="delCat('Maquinas', '${n}')">🗑️</button></div>`;
         }).join('');
       } else {
-        div.innerHTML = (dbData[cat.toLowerCase()]||[]).map(i => `<div class="item-row"><span>${i}</span><button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button></div>`).join('');
+        let list = dbData[cat.toLowerCase()] || [];
+        div.innerHTML = list.map(i => `<div class="item-row"><span>${i}</span><button class="btn-danger" onclick="delCat('${cat}', '${i}')">🗑️</button></div>`).join('');
       }
     };
-    fill('Naves', 'listAdminNaves'); fill('Maquinas', 'listAdminMaquinas'); 
-    fill('Operadores', 'listAdminOperadores'); fill('Items', 'listAdminItems'); 
-    fill('Tecnicos', 'listAdminTecnicos'); fill('Turnos', 'listAdminTurnos');
+    fill('Naves', 'listAdminNaves'); 
+    fill('Maquinas', 'listAdminMaquinas'); 
+    fill('Marcas', 'listAdminMarcas'); 
+    fill('Operadores', 'listAdminOperadores'); 
+    fill('Items', 'listAdminItems'); 
+    fill('Tecnicos', 'listAdminTecnicos'); 
+    fill('Turnos', 'listAdminTurnos');
+
+    // Usuarios
+    let divU = document.getElementById('listAdminUsuarios');
+    if(divU) {
+      divU.innerHTML = (dbData.usuarios||[]).map(u => `
+        <div class="item-row">
+          <span><b>${u.user}</b> <small>(${u.permisos||'Supervisor'})</small></span>
+          <button class="btn-danger" onclick="delUsuario('${u.user}')">🗑️</button>
+        </div>`).join('');
+    }
   }
 
   function addCat(cat, inId) {
     let v = document.getElementById(inId).value.trim(); if(!v) return;
-    let k = cat.toLowerCase(); if(dbData[k]) dbData[k].push(v);
+    let k = cat.toLowerCase(); 
+    if(!dbData[k]) dbData[k] = [];
+    dbData[k].push(v);
     renderDataLists(); document.getElementById(inId).value = '';
     postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: cat, val1: v });
   }
@@ -612,6 +957,7 @@
     let maq = document.getElementById('addMaq').value.trim();
     let nav = document.getElementById('addMaqNave').value;
     if(!maq || !nav) return alert("Indica máquina y nave");
+    if(!dbData.maquinas) dbData.maquinas = [];
     dbData.maquinas.push({maquina: maq, nave: nav});
     renderDataLists(); document.getElementById('addMaq').value = '';
     postData({ action: "MANAGE_CATALOGO", op: "ADD", catalogo: "Maquinas", val1: maq, val2: nav });
@@ -620,9 +966,31 @@
   function delCat(cat, val) {
     if(confirm(`¿Eliminar ${val}?`)) {
       let k = cat.toLowerCase();
-      if(k==='maquinas') dbData.maquinas = dbData.maquinas.filter(x => (x.maquina||x.col1) !== val);
+      if(k==='maquinas') dbData.maquinas = dbData.maquinas.filter(x => (typeof x === 'object' ? (x.maquina||x.col1) : x) !== val);
       else if(dbData[k]) dbData[k] = dbData[k].filter(x => x !== val);
       renderDataLists(); postData({ action: "MANAGE_CATALOGO", op: "DELETE", catalogo: cat, val1: val });
+    }
+  }
+
+  function addUsuario() {
+    let u = document.getElementById('addUsrName').value.trim();
+    let p = document.getElementById('addUsrPass').value.trim();
+    let perm = document.getElementById('addUsrPerm').value;
+    if(!u || !p) return alert("Ingresa usuario y contraseña");
+    
+    if(!dbData.usuarios) dbData.usuarios = [];
+    dbData.usuarios.push({user: u, pass: p, permisos: perm});
+    renderAdminLists();
+    document.getElementById('addUsrName').value = '';
+    document.getElementById('addUsrPass').value = '';
+    postData({ action: "ADD_USER", user: u, pass: p, permisos: perm });
+  }
+
+  function delUsuario(u) {
+    if(confirm(`¿Eliminar al usuario ${u}?`)) {
+      dbData.usuarios = dbData.usuarios.filter(x => x.user !== u);
+      renderAdminLists();
+      postData({ action: "DELETE_USER", user: u });
     }
   }
 
