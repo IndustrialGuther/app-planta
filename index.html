@@ -1092,13 +1092,13 @@
       if (pendientes.length > 0) {
         txt += `⏳ *${stName} PENDIENTES (${pendientes.length})*\n-----------------------------------\n`;
         pendientes.forEach((r, i) => {
-          txt += `${i+1}. Máquina: ${r.maquina}\n`;
-          if(r.item) txt += `   Ítem: ${r.item}\n`;
-          if(r.tecnico) txt += `   Técnico: ${r.tecnico}\n`;
-          if(r.operador) txt += `   Operador: ${r.operador}\n`;
-          txt += `   Inicio: ${formatHora(r.hInicio)} | Fin: En proceso...\n`;
-          txt += `   Tiempo: En proceso\n`;
-          if(r.comentarios) txt += `   Obs: ${r.comentarios}\n`;
+          txt += `${i+1}. *Máquina:* ${r.maquina}\n`;
+          if(r.item) txt += `   *Ítem:* ${r.item}\n`;
+          if(r.tecnico) txt += `   *Técnico:* ${r.tecnico}\n`;
+          if(r.operador) txt += `   *Operador:* ${r.operador}\n`;
+          txt += `   *Inicio:* ${formatHora(r.hInicio)} | *Fin:* En proceso...\n`;
+          txt += `   *Tiempo:* En proceso\n`;
+          if(r.comentarios) txt += `   *Obs:* ${r.comentarios}\n`;
           txt += `\n`;
         });
       }
@@ -1107,13 +1107,13 @@
       if (terminados.length > 0) {
         txt += `✅ *${stName} TERMINADOS (${terminados.length})*\n-----------------------------------\n`;
         terminados.forEach((r, i) => {
-          txt += `${i+1}. Máquina: ${r.maquina}\n`;
-          if(r.item) txt += `   Ítem: ${r.item}\n`;
-          if(r.tecnico) txt += `   Técnico: ${r.tecnico}\n`;
-          if(r.operador) txt += `   Operador: ${r.operador}\n`;
-          txt += `   Inicio: ${formatHora(r.hInicio)} | Fin: ${formatHora(r.hFin)}\n`;
-          txt += `   Tiempo: ${r.tiempo || '-'}\n`;
-          if(r.comentarios) txt += `   Obs: ${r.comentarios}\n`;
+          txt += `${i+1}. *Máquina:* ${r.maquina}\n`;
+          if(r.item) txt += `   *Ítem:* ${r.item}\n`;
+          if(r.tecnico) txt += `   *Técnico:* ${r.tecnico}\n`;
+          if(r.operador) txt += `   *Operador:* ${r.operador}\n`;
+          txt += `   *Inicio:* ${formatHora(r.hInicio)} | *Fin:* ${formatHora(r.hFin)}\n`;
+          txt += `   *Tiempo:* ${r.tiempo || '-'}\n`;
+          if(r.comentarios) txt += `   *Obs:* ${r.comentarios}\n`;
           txt += `\n`;
         });
       }
@@ -1122,9 +1122,9 @@
       if (caidas.length > 0) {
         txt += `🛑 *CAÍDAS (${caidas.length})*\n-----------------------------------\n`;
         caidas.forEach((r, i) => {
-          txt += `${i+1}. Máquina: ${r.maquina}\n`;
-          txt += `   Turno: ${r.turno || '-'}\n`;
-          if(r.comentarios) txt += `   Obs: ${r.comentarios}\n`;
+          txt += `${i+1}. *Máquina:* ${r.maquina}\n`;
+          txt += `   *Turno:* ${r.turno || '-'}\n`;
+          if(r.comentarios) txt += `   *Obs:* ${r.comentarios}\n`;
           txt += `\n`;
         });
       }
