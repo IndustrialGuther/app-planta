@@ -582,6 +582,12 @@
           <label style="margin-top:0; font-weight:normal; display:flex; align-items:center; gap:4px;">
             <input type="checkbox" id="chkPermTec" style="width:auto; margin:0;"> Técnico
           </label>
+          <label style="margin-top:0; font-weight:normal; display:flex; align-items:center; gap:4px;">
+            <input type="checkbox" id="chkPermGraf" style="width:auto; margin:0;"> 📈 Ver Gráficas
+          </label>
+          <label style="margin-top:0; font-weight:normal; display:flex; align-items:center; gap:4px;">
+            <input type="checkbox" id="chkPermTV" style="width:auto; margin:0;"> 📺 Ver Pantalla en Vivo
+          </label>
         </div>
         <div class="chk-group" style="background:#fefce8; border:1px solid #fde047; padding:6px 10px; border-radius:6px; margin-bottom:10px;">
           <label style="font-weight:bold; color:#854d0e; margin-top:0;"><input type="checkbox" id="chkUsrDorado"> ✨ Nombre destacado en dorado brillante</label>
@@ -735,7 +741,12 @@
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
           <div style="min-width:240px; flex:1; max-width:420px;">
             <label>Ítem</label>
+            <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+              <input type="search" id="graDurItemBuscar" placeholder="🔍 Buscar N. de parte..." autocomplete="off" oninput="filtrarSelectorDurItem()" onkeydown="if(event.key==='Escape'){ limpiarBusquedaDurItem(); }" style="margin:0; flex:1;">
+              <button type="button" class="btn-secondary" onclick="limpiarBusquedaDurItem()" title="Limpiar búsqueda" style="width:auto; margin:0; padding:8px 12px;">✕</button>
+            </div>
             <select id="graDurItem" onchange="renderChartDuracionItem()"><option value="__TODOS__">Todos los ítems (promedio por registro)</option></select>
+            <small id="graDurItemMatchInfo" style="color:#64748b;"></small>
           </div>
         </div>
         <div id="graDurInfo" style="margin-top:8px; font-size:0.85rem; color:#64748b;"></div>
@@ -894,6 +905,9 @@
   const API_URL = "https://script.google.com/macros/s/AKfycbyGEoLUXAPebRsxnPYw18Z0PApp44lpY1-Fua0HK0on66BS1A4KlI2QfDvVtgfjjn4atQ/exec";
   let dbData = { naves:[], maquinas:[], operadores:[], turnos:[], marcas:[], items:[], tecnicos:[], tiemposMuertos:[], depositosAceite:[], duracionItems:[], usuarios:[], registrosOperadores:[], registrosSolubles:[], registrosSetup:[], registrosTiemposMuertos:[], registrosAceites:[], alarmMinutes: 150, soundVol: 50, soundFreq: 880, soundSpeed: 300, tvScrollSpeed: 2 };
   let currentUser = null, isAdmin = false, adminAuthToken = '';
+  let currentPerms = ''; // permisos (texto) del usuario que inició sesión
+  // El admin siempre puede ver Gráficas; un usuario normal solo si el admin le dio el permiso "Graficas".
+  function canViewGraficas() { return isAdmin || String(currentPerms || '').includes('Graficas'); }
   let dataReady = false, initialLoadPromise = null; // FIX: bandera para saber si ya llego la primera carga completa de datos (usuarios, etc.)
   const SYNC_INTERVAL_MS = 1000;
   const TV_LIVE_INTERVAL_MS = 1000;
@@ -1450,6 +1464,7 @@
       isAdmin = false;
       adminAuthToken = '';
       let perms = val.permisos || '';
+      currentPerms = perms;
 
       document.getElementById('userDisp').textContent = `Usuario: ${currentUser}`;
       document.getElementById('secLogin').classList.add('hidden');
@@ -1471,6 +1486,8 @@
       if(perms.includes('Aceites')) { document.getElementById('btnTabAce').classList.remove('hidden'); initialTab = initialTab || 'aceites'; }
       if(perms.includes('Maquinas')) { document.getElementById('btnTabSet').classList.remove('hidden'); initialTab = initialTab || 'setup'; }
       if(perms.includes('Tecnico')) { document.getElementById('btnTabTec').classList.remove('hidden'); initialTab = initialTab || 'tecnico'; }
+      if(perms.includes('Graficas')) { document.getElementById('btnTabGraficas').classList.remove('hidden'); initialTab = initialTab || 'graficas'; }
+      if(perms.includes('PantallaVivo')) { document.getElementById('btnTabTV').classList.remove('hidden'); initialTab = initialTab || 'tv'; }
 
       if(initialTab) {
         switchTab(initialTab);
@@ -2376,6 +2393,56 @@
     window.scrollTo({top: 0});
   }
 
+  // Tarjeta COMPLETA de un registro de máquina en modo solo lectura (sin botones de editar/borrar).
+  // Muestra la misma información que ve el usuario que lo registró.
+  function buildMaqRegCardReadOnly(r) {
+    const st = r.estatus;
+    const term = r.hFin ? true : false;
+    const esCritico = !!r.critico && r.critico !== 'false';
+    const alarmLimitMinHist = parseInt(dbData.alarmMinutes, 10) || 150;
+    const superoLimite = !term && (st === 'Set up' || st === 'Ajuste') && getPendingMinutes(r.fecha, r.hInicio) >= alarmLimitMinHist;
+    let cls = st==='Caida'?'st-caida': st==='Corriendo'?'st-corriendo': st==='Ajuste'?'st-ajuste':'st-setup';
+    if(term && st !== 'Caida') cls += ' st-term';
+    if(esCritico) cls += ' st-critico';
+
+    let dur = term ? (r.tiempo || '-') : (getPendingMinutes(r.fecha, r.hInicio) + ' mins (en curso)');
+    const estExp = (st === 'Corriendo') ? getEstadoExcedido(r) : null;
+    if(estExp && estExp.excedido) dur = `<span class="time-excede">${escapeHtml(String(dur))}</span>`;
+    else dur = escapeHtml(String(dur));
+
+    let badges = '';
+    if(esCritico) badges += ` <span class="badge-critico">⚠️ CRÍTICO</span>`;
+    if(esCritico && superoLimite) badges += ` <span class="crit-limit-tag">⏰ Límite superado</span>`;
+    if(estExp && estExp.excedido) badges += ` <span class="exp-sign${estExp.enProceso ? '' : ' exp-static'}">${expSignText(estExp)}</span>`;
+    if(r.editadoPorAdmin && r.editadoPorAdmin !== 'false') badges += ` <span class="badge-admin-edit">✏️ Editado por Admin</span>`;
+
+    let det = `<small><b>Turno:</b> ${escapeHtml(r.turno||'-')} | <b>Supervisor:</b> ${getSupervisorHtml(r)}</small><br>`;
+    if(st !== 'Caida') det += `<small><b>Item:</b> ${escapeHtml(r.item||'-')} | <b>Ini:</b> ${formatHora(r.hInicio)} <b>Fin:</b> ${term ? formatHora(r.hFin) : '<i>Pendiente</i>'}</small><br>`;
+    if(st === 'Corriendo') det += `<small><b>Op:</b> ${escapeHtml(r.operador||'-')} ${r.opCubre?`(Cubre:${escapeHtml(r.opCubre)})`:''} | <b>Duración:</b> ${dur}<br><b>Plan:</b> ${escapeHtml(String(r.piezasPlan||0))} | <b>Real:</b> ${escapeHtml(String(r.piezasReal||0))} | <b>Delta (Falta):</b> ${escapeHtml(String(r.piezasDelta||0))}</small><br>`;
+    if(estExp) det += `<small><b>🎯 Duración esperada:</b> ${fmtNum(estExp.esperada, 1)} min <span style="color:#64748b;">(${fmtNum(estExp.piezasPlan, 2)} pz × ${fmtNum(estExp.minPorPieza, 2)} min/pz)</span></small><br>`;
+    if(st === 'Ajuste' || st === 'Set up') det += `<small><b>Tec:</b> ${escapeHtml(r.tecnico||'-')} | <b>Duración:</b> ${dur}</small><br>`;
+    if(st === 'Caida') det += `<small><b>Duración:</b> ${dur}</small><br>`;
+
+    const tms = (dbData.registrosTiemposMuertos||[]).filter(x => x.regId === r.id);
+    if(tms.length > 0) {
+      det += `<div class="tm-box"><b>⏱️ Tiempos Muertos (${tms.length}):</b>`;
+      tms.forEach(tm => {
+        const isTmTerm = !!tm.hFin;
+        const tmDur = isTmTerm ? tm.duracion : getPendingMinutes(r.fecha, tm.hInicio);
+        det += `<div class="tm-item"><span>• <b>${escapeHtml(tm.tiempoMuerto)}:</b> ${escapeHtml(String(tmDur))} mins ${isTmTerm?'':'(en curso)'} <small style="color:#64748b;">(${nameHtml(tm.usuario)})</small>${(tm.editadoPorAdmin && tm.editadoPorAdmin!=='false') ? ' <span class="badge-admin-edit">✏️ Admin</span>' : ''}${tm.comentarios ? ' - <i>'+escapeHtml(tm.comentarios)+'</i>' : ''}</span></div>`;
+      });
+      det += `</div>`;
+    }
+
+    if(r.fechaRegistro) det += `<small style="color:#64748b;">📅 <b>Reg:</b> ${escapeHtml(r.fechaRegistro)} ${r.fechaActualizacion?'| ✏️ <b>Act:</b> '+escapeHtml(r.fechaActualizacion):''}</small><br>`;
+    if(r.comentarios) det += `<small style="color:#64748b;"><i>${escapeHtml(r.comentarios)}</i></small>`;
+
+    return `
+      <div class="item-row ${cls}">
+        <div><b>${escapeHtml(r.maquina)}</b> - ${escapeHtml(r.estatus)} ${term && st!=='Caida' ? '✅' : '⏳'}${badges}<br>${det}</div>
+      </div>`;
+  }
+
   // --- RENDERING HISTORIALES ---
   function renderHistoriales() {
     if(!currentUser && !isAdmin) return;
@@ -2530,17 +2597,25 @@
       let filComp = act.filter(r => normalizeDateStr(r.fecha) === fDateComp && getSupervisor(r).toLowerCase() !== activeUser);
       filComp.sort((a, b) => (a.maquina||"").localeCompare(b.maquina||"", undefined, {numeric: true, sensitivity: 'base'}));
 
-      let htmlComp = (filComp.length > 0) ? filComp.map(r => {
-        let term = r.hFin ? true : false;
-        let dur = term ? (r.tiempo || '-') : (getPendingMinutes(r.fecha, r.hInicio) + ' mins (en curso)');
-        return `<div class="item-row">
-          <div>
-            <b>${escapeHtml(r.maquina)}</b> - ${escapeHtml(r.estatus)} ${term ? '✅' : '⏳'} | <b>Supervisor:</b> ${getSupervisorHtml(r)}<br>
-            <small>${r.item ? 'Item: '+escapeHtml(r.item)+' | ' : ''}Turno: ${escapeHtml(r.turno||'-')} | Ini: ${formatHora(r.hInicio)} ${term ? '| Fin: '+formatHora(r.hFin) : ''} | Duración: ${escapeHtml(String(dur))}</small>
-            ${r.comentarios ? `<br><small style="color:#64748b;"><i>${escapeHtml(r.comentarios)}</i></small>` : ''}
-          </div>
-        </div>`;
-      }).join('') : '<p style="color:#94a3b8;">Sin registros de compañeros para esta fecha.</p>';
+      // Registros completos (misma información que ve quien los registró), agrupados por estatus y sin botones.
+      let htmlComp = '';
+      if(filComp.length > 0) {
+        const estatusOrden = ['Caida','Corriendo','Ajuste','Set up'];
+        estatusOrden.forEach(st => {
+          const rs = filComp.filter(x => x.estatus === st);
+          if(rs.length > 0) {
+            htmlComp += `<h3 style="margin-top:15px; border-bottom:1px solid #ccc;">${st.toUpperCase()}</h3>`;
+            rs.forEach(r => { htmlComp += buildMaqRegCardReadOnly(r); });
+          }
+        });
+        const otrosComp = filComp.filter(x => !estatusOrden.includes(x.estatus));
+        if(otrosComp.length > 0) {
+          htmlComp += `<h3 style="margin-top:15px; border-bottom:1px solid #ccc;">OTROS</h3>`;
+          otrosComp.forEach(r => { htmlComp += buildMaqRegCardReadOnly(r); });
+        }
+      } else {
+        htmlComp = '<p style="color:#94a3b8;">Sin registros de compañeros para esta fecha.</p>';
+      }
 
       let divComp = document.getElementById('historialCompMaq');
       if(divComp) divComp.innerHTML = htmlComp;
@@ -3883,6 +3958,8 @@
     document.getElementById('chkPermSol').checked = perms.includes('Solubles');
     document.getElementById('chkPermAce').checked = perms.includes('Aceites');
     document.getElementById('chkPermTec').checked = perms.includes('Tecnico');
+    document.getElementById('chkPermGraf').checked = perms.includes('Graficas');
+    document.getElementById('chkPermTV').checked = perms.includes('PantallaVivo');
     document.getElementById('chkUsrDorado').checked = !!dorado;
     
     document.getElementById('btnSaveUsr').textContent = 'Guardar Cambios';
@@ -3899,6 +3976,8 @@
     document.getElementById('chkPermSol').checked = false;
     document.getElementById('chkPermAce').checked = false;
     document.getElementById('chkPermTec').checked = false;
+    document.getElementById('chkPermGraf').checked = false;
+    document.getElementById('chkPermTV').checked = false;
     document.getElementById('chkUsrDorado').checked = false;
     document.getElementById('btnSaveUsr').textContent = 'Agregar Nuevo';
     document.getElementById('btnCancelUsr').classList.add('hidden');
@@ -3917,6 +3996,8 @@
     if(document.getElementById('chkPermSol').checked) permsArr.push('Solubles');
     if(document.getElementById('chkPermAce').checked) permsArr.push('Aceites');
     if(document.getElementById('chkPermTec').checked) permsArr.push('Tecnico');
+    if(document.getElementById('chkPermGraf').checked) permsArr.push('Graficas');
+    if(document.getElementById('chkPermTV').checked) permsArr.push('PantallaVivo');
     let permsStr = permsArr.join(', ');
     let doradoVal = document.getElementById('chkUsrDorado').checked ? 'true' : '';
 
@@ -4077,7 +4158,7 @@
 
   let grafLibRetryTimer = null;
   function renderGraficas() {
-    if(!isAdmin) return;
+    if(!canViewGraficas()) return;
     if(document.getElementById('panelGraficas').classList.contains('hidden')) return;
 
     const warnEl = document.getElementById('graLibWarning');
@@ -4199,8 +4280,14 @@
   // Real = tiempo entre hora de inicio y hora final registradas.
   // Solo cuenta registros "Corriendo" ya terminados (con hora final) cuyo ítem tenga duración registrada.
   let graDurItemSig = '';
+  function filtrarSelectorDurItem() { graDurItemSig = '\u0000'; renderChartDuracionItem(); }
+  function limpiarBusquedaDurItem() {
+    const el = document.getElementById('graDurItemBuscar');
+    if(el) el.value = '';
+    filtrarSelectorDurItem();
+  }
   function renderChartDuracionItem() {
-    if(!isAdmin) return;
+    if(!canViewGraficas()) return;
     if(document.getElementById('panelGraficas').classList.contains('hidden')) return;
     if(typeof Chart === 'undefined') return;
 
@@ -4226,14 +4313,24 @@
     const items = new Map();
     base.forEach(x => { const k = normItemKey(x.r.item); if(!items.has(k)) items.set(k, String(x.r.item).trim()); });
     const itemList = Array.from(items.entries()).sort((a, b) => a[1].localeCompare(b[1], undefined, {numeric: true, sensitivity: 'base'}));
-    const sig = itemList.map(x => x[0]).join('|');
+    // Buscador: filtra las opciones del selector (sin importar mayúsculas ni espacios).
+    const buscarEl = document.getElementById('graDurItemBuscar');
+    const normBuscar = (v) => String(v == null ? '' : v).toLowerCase().replace(/\s+/g, '');
+    const itemFilter = normBuscar(buscarEl ? buscarEl.value : '');
+    const itemListFiltrada = itemFilter ? itemList.filter(([k, label]) => normBuscar(label).includes(itemFilter)) : itemList;
+    const sig = itemFilter + '##' + itemListFiltrada.map(x => x[0]).join('|');
     if(sig !== graDurItemSig) {
       const prev = selEl.value;
       selEl.innerHTML = '<option value="__TODOS__">Todos los ítems (promedio por registro)</option>' +
-        itemList.map(([k, label]) => `<option value="${escapeHtmlAttr(k)}">${escapeHtml(label)}</option>`).join('');
-      selEl.value = itemList.some(([k]) => k === prev) ? prev : '__TODOS__';
+        ((itemFilter && !itemListFiltrada.length) ? '<option value="__NADA__" disabled>Sin coincidencias</option>' : '') +
+        itemListFiltrada.map(([k, label]) => `<option value="${escapeHtmlAttr(k)}">${escapeHtml(label)}</option>`).join('');
+      if(itemListFiltrada.some(([k]) => k === prev)) selEl.value = prev;
+      else if(itemFilter && itemListFiltrada.length) selEl.value = itemListFiltrada[0][0]; // al buscar, selecciona la primera coincidencia
+      else selEl.value = '__TODOS__';
       graDurItemSig = sig;
     }
+    const matchInfoEl = document.getElementById('graDurItemMatchInfo');
+    if(matchInfoEl) matchInfoEl.textContent = itemFilter ? (itemListFiltrada.length ? `${itemListFiltrada.length} coincidencia(s) en el rango de fechas` : 'Sin coincidencias en el rango de fechas') : '';
 
     const sel = selEl.value;
     const r1 = (n) => Math.round(n * 10) / 10;
@@ -4325,7 +4422,7 @@
 
   // --- Gráfica personalizada: el admin elige qué agrupar (eje X) y qué medir (eje Y) ---
   function renderChartPersonalizado() {
-    if(!isAdmin) return;
+    if(!canViewGraficas()) return;
     if(document.getElementById('panelGraficas').classList.contains('hidden')) return;
     if(typeof Chart === 'undefined') return;
 
